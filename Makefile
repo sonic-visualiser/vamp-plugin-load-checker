@@ -1,9 +1,9 @@
 
 CXXFLAGS	:= -Wall -Werror 
 
-checker:	checker.o
+helper:	helper.o
 		$(CXX) -o $@ $< -ldl
 
 clean:
-		rm checker.o
+		rm helper.o
 

@@ -1,14 +1,15 @@
 
 /**
- * Vamp Plugin Load Checker
+ * Plugin Load Checker Helper
  *
- * This program reads a list of Vamp plugin library paths from stdin,
- * one per line. For each path read, it attempts to load that library
- * and retrieve its descriptor function, printing a line to stdout
- * reporting whether this was successful or not and then flushing
- * stdout. The output line format is described below. The program
- * exits with code 0 if all libraries were loaded successfully and
- * non-zero otherwise.
+ * This program accepts the name of a descriptor function as its only
+ * command-line argument. It then reads a list of plugin library paths
+ * from stdin, one per line. For each path read, it attempts to load
+ * that library and retrieve the named descriptor function, printing a
+ * line to stdout reporting whether this was successful or not and
+ * then flushing stdout. The output line format is described
+ * below. The program exits with code 0 if all libraries were loaded
+ * successfully and non-zero otherwise.
  *
  * Note that library paths must be ready to pass to dlopen() or
  * equivalent; this usually means they should be absolute paths.
@@ -53,14 +54,13 @@ string error()
     else return e;
 }
 
-string check(string soname)
+string check(string soname, string descriptor)
 {
     void *handle = DLOPEN(soname, RTLD_NOW | RTLD_LOCAL);
     if (!handle) {
 	return "Unable to open plugin library: " + error();
     }
 
-    string descriptor = "vampGetPluginDescriptor"; //!!! todo: make an arg
     void *fn = DLSYM(handle, descriptor);
     if (!fn) {
 	return "Failed to find plugin descriptor " + descriptor +
@@ -75,8 +75,18 @@ int main(int argc, char **argv)
     bool allGood = true;
     string soname;
 
+    if (argc != 2) {
+	cerr << "\nUsage:\n    " << argv[0] << " descriptorname\n"
+	    "\nwhere descriptorname is the name of a plugin descriptor function to be sought\n"
+	    "in each library (e.g. vampGetPluginDescriptor for Vamp plugins). The list of\n"
+	    "candidate plugin library filenames is read from stdin.\n" << endl;
+	return 2;
+    }
+
+    string descriptor = argv[1];
+    
     while (getline(cin, soname)) {
-	string report = check(soname);
+	string report = check(soname, descriptor);
 	if (report != "") {
 	    cout << "FAILURE|" << soname << "|" << report << endl;
 	    allGood = false;
