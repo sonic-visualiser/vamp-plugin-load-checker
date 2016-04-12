@@ -1,3 +1,4 @@
+/* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 
 /**
  * Plugin Load Checker Helper
@@ -20,11 +21,11 @@
  * Output line for failed load of library libname.so:
  * FAILURE|/path/to/libname.so|Reason for failure if available
  *
- * Note that sometimes plugins will crash completely on load, bringing
- * down this program with them. If the program exits before all listed
- * plugins have been checked, this means that the plugin following the
- * last reported one has crashed. Typically the caller may want to run
- * it again, omitting that plugin.
+ * Sometimes plugins will crash completely on load, bringing down this
+ * program with them. If the program exits before all listed plugins
+ * have been checked, this means that the plugin following the last
+ * reported one has crashed. Typically the caller may want to run it
+ * again, omitting that plugin.
  */
 
 #ifdef _WIN32
