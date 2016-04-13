@@ -33,10 +33,17 @@
 
 using namespace std;
 
+struct LogCallback : PluginCandidates::LogCallback {
+    virtual void log(string message) {
+        cerr << "checker: log: " << message;
+    }
+};
+
 int main(int, char **)
 {
-    KnownPlugins kp;
-
+    LogCallback cb;
+    KnownPlugins kp("./helper", &cb); //!!!
+    
     for (auto t: kp.getKnownPluginTypes()) {
 	cout << "successful libraries for plugin type \""
 	     << kp.getTagFor(t) << "\":" << endl;

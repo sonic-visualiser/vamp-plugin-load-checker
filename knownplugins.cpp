@@ -39,9 +39,12 @@ using namespace std;
 #define PATH_SEPARATOR ':'
 #endif
 
-KnownPlugins::KnownPlugins() :
-    m_candidates("./helper") //!!!??? wot to do
+KnownPlugins::KnownPlugins(string helperExecutableName,
+                           PluginCandidates::LogCallback *cb) :
+    m_candidates(helperExecutableName)
 {
+    m_candidates.setLogCallback(cb);
+    
     m_known = {
 	{
 	    VampPlugin,

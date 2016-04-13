@@ -46,12 +46,20 @@
 class PluginCandidates
 {
     typedef std::vector<std::string> stringlist;
-    
+
 public:
     /** Construct a PluginCandidates scanner that uses the given
      *  executable as its load check helper.
      */
     PluginCandidates(std::string helperExecutableName);
+
+    struct LogCallback {
+        virtual void log(std::string) = 0;
+    };
+    
+    /** Set a callback to be called for log output.
+     */
+    void setLogCallback(LogCallback *cb);
 
     /** Scan the libraries found in the given plugin path (i.e. list
      *  of plugin directories), checking that the given descriptor
@@ -85,10 +93,12 @@ private:
     std::string m_helper;
     std::map<std::string, stringlist> m_candidates;
     std::map<std::string, std::vector<FailureRec> > m_failures;
+    LogCallback *m_logCallback;
 
     stringlist getLibrariesInPath(stringlist path);
     stringlist runHelper(stringlist libraries, std::string descriptor);
     void recordResult(std::string tag, stringlist results);
+    void log(std::string);
 };
 
 #endif

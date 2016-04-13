@@ -74,6 +74,8 @@
 #include <string>
 #include <iostream>
 
+#include <unistd.h>
+
 using namespace std;
 
 string error()
@@ -85,23 +87,17 @@ string error()
 
 string check(string soname, string descriptor)
 {
-//    cerr << "helper: trying: " << soname << endl;
-    
     void *handle = DLOPEN(soname, RTLD_NOW | RTLD_LOCAL);
     if (!handle) {
-//	cerr << "helper: failed to open" << endl;
 	return "Unable to open plugin library: " + error();
     }
 
     void *fn = DLSYM(handle, descriptor);
     if (!fn) {
-//	cerr << "helper: failed to find descriptor" << endl;
 	return "Failed to find plugin descriptor " + descriptor +
 	    " in library: " + error();
     }
 
-//    cerr << "helper: succeeded" << endl;
-    
     return "";
 }
 

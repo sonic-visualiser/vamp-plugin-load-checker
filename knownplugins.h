@@ -47,7 +47,8 @@ public:
 	DSSIPlugin
     };
 
-    KnownPlugins();
+    KnownPlugins(std::string helperExecutableName,
+                 PluginCandidates::LogCallback *cb = 0);
 
     std::vector<PluginType> getKnownPluginTypes() const {
 	return { VampPlugin, LADSPAPlugin, DSSIPlugin };

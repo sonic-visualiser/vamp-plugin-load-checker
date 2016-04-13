@@ -35,6 +35,7 @@
 
 #include <QProcess>
 #include <QDir>
+#include <QTime>
 
 #if defined(_WIN32)
 #define PLUGIN_GLOB "*.dll"
@@ -47,8 +48,15 @@
 using namespace std;
 
 PluginCandidates::PluginCandidates(string helperExecutableName) :
-    m_helper(helperExecutableName)
+    m_helper(helperExecutableName),
+    m_logCallback(0)
 {
+}
+
+void
+PluginCandidates::setLogCallback(LogCallback *cb)
+{
+    m_logCallback = cb;
 }
 
 vector<string>
@@ -65,6 +73,12 @@ PluginCandidates::getFailedLibrariesFor(string tag) const
     else return m_failures.at(tag);
 }
 
+void
+PluginCandidates::log(string message)
+{
+    if (m_logCallback) m_logCallback->log("PluginCandidates: " + message);
+}
+
 vector<string>
 PluginCandidates::getLibrariesInPath(vector<string> path)
 {
@@ -72,9 +86,7 @@ PluginCandidates::getLibrariesInPath(vector<string> path)
 
     for (string dirname: path) {
 
-//#ifdef DEBUG_PLUGIN_SCAN_AND_INSTANTIATE
-        cerr << "getLibrariesInPath: scanning directory " << dirname << endl;
-//#endif
+        log("scanning directory " + dirname + "\n");
 
         QDir dir(dirname.c_str(), PLUGIN_GLOB,
 		 QDir::Name | QDir::IgnoreCase,
@@ -111,10 +123,9 @@ PluginCandidates::scan(string tag,
 	    // with the plugin following the last one it reported
 	    // on. Add a failure entry for that one and continue with
 	    // the following ones.
-            cerr << "shortfall = " << shortfall << " (of " << remaining.size() << ")" << endl;
-	    result.push_back("FAILURE|" +
-                             *(remaining.rbegin() + shortfall - 1) +
-                             "|Plugin load check failed");
+            string failed = *(remaining.rbegin() + shortfall - 1);
+            log("helper output ended before result for plugin " + failed + "\n");
+	    result.push_back("FAILURE|" + failed + "|Plugin load check failed or timed out");
             remaining = vector<string>
                 (remaining.rbegin(), remaining.rbegin() + shortfall - 1);
 	}
@@ -128,8 +139,9 @@ vector<string>
 PluginCandidates::runHelper(vector<string> libraries, string descriptor)
 {
     vector<string> output;
-//    cerr << "running helper with following library list:" << endl;
-//    for (auto &lib: libraries) cerr << lib << endl;
+
+    log("running helper with following library list:\n");
+    for (auto &lib: libraries) log(lib + "\n");
 
     QProcess process;
     process.setReadChannel(QProcess::StandardOutput);
@@ -144,6 +156,10 @@ PluginCandidates::runHelper(vector<string> libraries, string descriptor)
 	process.write("\n", 1);
     }
 
+    QTime t;
+    t.start();
+    int timeout = 3000; // ms
+
     int buflen = 4096;
     bool done = false;
     
@@ -155,12 +171,22 @@ PluginCandidates::runHelper(vector<string> libraries, string descriptor)
             done = (output.size() == libraries.size());
         } else if (linelen < 0) {
             // error case
+            log("received error code while reading from helper\n");
             done = true;
 	} else {
             // no error, but no line read (could just be between
             // lines, or could be eof)
             done = (process.state() == QProcess::NotRunning);
-            if (!done) process.waitForReadyRead(100);
+            if (!done) {
+                if (t.elapsed() > timeout) {
+                    // this is purely an emergency measure
+                    log("timeout: helper took too long, killing it\n");
+                    process.kill();
+                    done = true;
+                } else {
+                    process.waitForReadyRead(200);
+                }
+            }
         }
     }
 
@@ -179,8 +205,11 @@ PluginCandidates::recordResult(string tag, vector<string> result)
 
         QString s(r.c_str());
         QStringList bits = s.split("|");
+
+        log("read output line from helper: " + r);
+        
         if (bits.size() < 2 || bits.size() > 3) {
-            cerr << "Invalid helper output line: \"" << r << "\"" << endl;
+            log("invalid output line (wrong number of |-separated fields)\n");
             continue;
         }
 
@@ -199,8 +228,7 @@ PluginCandidates::recordResult(string tag, vector<string> result)
             m_failures[tag].push_back({ library, message });
 
         } else {
-            cerr << "Unexpected status " << status
-                 << " in helper output line: \"" << r << "\"" << endl;
+            log("unexpected status \"" + status + "\" in output line\n");
         }
     }
 }
