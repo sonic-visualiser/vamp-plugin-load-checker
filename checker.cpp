@@ -1,12 +1,23 @@
 
-#include "plugincandidates.h"
+#include "knownplugins.h"
 
-int main(int argc, char **argv)
+#include <iostream>
+
+using namespace std;
+
+int main(int, char **)
 {
-    //!!! just a test
-    PluginCandidates candidates("./helper");
-    candidates.scan("vamp",
-                    { "/usr/lib/vamp", "/usr/local/lib/vamp" },
-                    "vampGetPluginDescriptor");
+    KnownPlugins kp;
+
+    for (auto t: kp.getKnownPluginTypes()) {
+	cout << "successful libraries for plugin type \""
+	     << kp.getTagFor(t) << "\":" << endl;
+	for (auto lib: kp.getCandidateLibrariesFor(t)) {
+	    cout << lib << endl;
+	}
+    }
+
+    cout << "Failure message (if any):" << endl;
+    cout << kp.getFailureReport() << endl;
 }
 

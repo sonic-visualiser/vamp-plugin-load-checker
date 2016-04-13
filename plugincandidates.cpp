@@ -9,16 +9,12 @@
 #include <QProcess>
 #include <QDir>
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #define PLUGIN_GLOB "*.dll"
-#define PATH_SEPARATOR ';'
-#else
-#define PATH_SEPARATOR ':'
-#ifdef __APPLE__
+#elif defined(__APPLE__)
 #define PLUGIN_GLOB "*.dylib *.so"
 #else
 #define PLUGIN_GLOB "*.so"
-#endif
 #endif
 
 using namespace std;
@@ -29,15 +25,17 @@ PluginCandidates::PluginCandidates(string helperExecutableName) :
 }
 
 vector<string>
-PluginCandidates::getCandidateLibrariesFor(string tag)
+PluginCandidates::getCandidateLibrariesFor(string tag) const
 {
-    return m_candidates[tag];
+    if (m_candidates.find(tag) == m_candidates.end()) return {};
+    else return m_candidates.at(tag);
 }
 
 vector<PluginCandidates::FailureRec>
-PluginCandidates::getFailedLibrariesFor(string tag)
+PluginCandidates::getFailedLibrariesFor(string tag) const
 {
-    return m_failures[tag];
+    if (m_failures.find(tag) == m_failures.end()) return {};
+    else return m_failures.at(tag);
 }
 
 vector<string>
@@ -67,7 +65,7 @@ PluginCandidates::getLibrariesInPath(vector<string> path)
 void
 PluginCandidates::scan(string tag,
 		       vector<string> pluginPath,
-		       string descriptorFunctionName)
+		       string descriptorSymbolName)
 {
     vector<string> libraries = getLibrariesInPath(pluginPath);
     vector<string> remaining = libraries;
@@ -78,21 +76,20 @@ PluginCandidates::scan(string tag,
     vector<string> result;
     
     while (result.size() < libraries.size() && runcount < runlimit) {
-	vector<string> output = runHelper(remaining, descriptorFunctionName);
+	vector<string> output = runHelper(remaining, descriptorSymbolName);
 	result.insert(result.end(), output.begin(), output.end());
 	int shortfall = int(remaining.size()) - int(output.size());
 	if (shortfall > 0) {
 	    // Helper bailed out for some reason presumably associated
 	    // with the plugin following the last one it reported
-	    // on. Add a null entry for that one and continue with the
-	    // following ones.
-	    result.push_back("");
-	    if (shortfall == 1) {
-		remaining = vector<string>();
-	    } else {
-		remaining = vector<string>
-		    (remaining.rbegin(), remaining.rbegin() + shortfall - 1);
-	    }
+	    // on. Add a failure entry for that one and continue with
+	    // the following ones.
+            cerr << "shortfall = " << shortfall << " (of " << remaining.size() << ")" << endl;
+	    result.push_back("FAILURE|" +
+                             *(remaining.rbegin() + shortfall - 1) +
+                             "|Plugin load check failed");
+            remaining = vector<string>
+                (remaining.rbegin(), remaining.rbegin() + shortfall - 1);
 	}
 	++runcount;
     }
@@ -104,11 +101,12 @@ vector<string>
 PluginCandidates::runHelper(vector<string> libraries, string descriptor)
 {
     vector<string> output;
-    cerr << "running helper with following library list:" << endl;
-    for (auto &lib: libraries) cerr << lib << endl;
+//    cerr << "running helper with following library list:" << endl;
+//    for (auto &lib: libraries) cerr << lib << endl;
 
     QProcess process;
     process.setReadChannel(QProcess::StandardOutput);
+    process.setProcessChannelMode(QProcess::ForwardedErrorChannel);
     process.start(m_helper.c_str(), { descriptor.c_str() });
     if (!process.waitForStarted()) {
 	cerr << "helper failed to start" << endl;
@@ -120,21 +118,29 @@ PluginCandidates::runHelper(vector<string> libraries, string descriptor)
     }
 
     int buflen = 4096;
-    while (process.waitForReadyRead()) {
+    bool done = false;
+    
+    while (!done) {
 	char buf[buflen];
 	qint64 linelen = process.readLine(buf, buflen);
-//        cerr << "read line: " << buf;
-	if (linelen < 0) {
-	    cerr << "read failed from plugin load helper" << endl;
-	    return output;
-	}
-	output.push_back(buf);
-        if (output.size() == libraries.size()) {
-            process.close();
-            process.waitForFinished();
-            break;
+        if (linelen > 0) {
+            output.push_back(buf);
+            done = (output.size() == libraries.size());
+        } else if (linelen < 0) {
+            // error case
+            done = true;
+	} else {
+            // no error, but no line read (could just be between
+            // lines, or could be eof)
+            done = (process.state() == QProcess::NotRunning);
+            if (!done) process.waitForReadyRead(100);
         }
-    }	
+    }
+
+    if (process.state() != QProcess::NotRunning) {
+        process.close();
+        process.waitForFinished();
+    }
 	
     return output;
 }
@@ -142,8 +148,33 @@ PluginCandidates::runHelper(vector<string> libraries, string descriptor)
 void
 PluginCandidates::recordResult(string tag, vector<string> result)
 {
-    cerr << "recordResult: not yet implemented, but result was:" << endl;
-    for (auto &r: result) cerr << r;
-    cerr << "(ends)" << endl;
+    for (auto &r: result) {
+
+        QString s(r.c_str());
+        QStringList bits = s.split("|");
+        if (bits.size() < 2 || bits.size() > 3) {
+            cerr << "Invalid helper output line: \"" << r << "\"" << endl;
+            continue;
+        }
+
+        string status = bits[0].toStdString();
+        
+        string library = bits[1].toStdString();
+        if (bits.size() == 2) library = bits[1].trimmed().toStdString();
+
+        string message = "";
+        if (bits.size() > 2) message = bits[2].trimmed().toStdString();
+        
+        if (status == "SUCCESS") {
+            m_candidates[tag].push_back(library);
+
+        } else if (status == "FAILURE") {
+            m_failures[tag].push_back({ library, message });
+
+        } else {
+            cerr << "Unexpected status " << status
+                 << " in helper output line: \"" << r << "\"" << endl;
+        }
+    }
 }
 

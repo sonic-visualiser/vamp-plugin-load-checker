@@ -28,7 +28,7 @@ public:
 
     /** Scan the libraries found in the given plugin path (i.e. list
      *  of plugin directories), checking that the given descriptor
-     *  function can be looked up in each. Store the results
+     *  symbol can be looked up in each. Store the results
      *  internally, associated with the given (arbitrary) tag, for
      *  later querying using getCandidateLibrariesFor() and
      *  getFailedLibrariesFor().
@@ -37,12 +37,12 @@ public:
      */
     void scan(std::string tag,
 	      stringlist pluginPath,
-	      std::string descriptorFunctionName);
+	      std::string descriptorSymbolName);
 
     /** Return list of plugin library paths that were checked
      *  successfully during the scan for the given tag.
      */
-    stringlist getCandidateLibrariesFor(std::string tag);
+    stringlist getCandidateLibrariesFor(std::string tag) const;
 
     struct FailureRec {
 	std::string library;
@@ -52,7 +52,7 @@ public:
     /** Return list of failure reports arising from the prior scan for
      *  the given tag. 
      */
-    std::vector<FailureRec> getFailedLibrariesFor(std::string tag);
+    std::vector<FailureRec> getFailedLibrariesFor(std::string tag) const;
 
 private:
     std::string m_helper;

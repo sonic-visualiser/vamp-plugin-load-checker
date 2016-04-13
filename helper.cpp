@@ -3,10 +3,10 @@
 /**
  * Plugin Load Checker Helper
  *
- * This program accepts the name of a descriptor function as its only
+ * This program accepts the name of a descriptor symbol as its only
  * command-line argument. It then reads a list of plugin library paths
  * from stdin, one per line. For each path read, it attempts to load
- * that library and retrieve the named descriptor function, printing a
+ * that library and retrieve the named descriptor symbol, printing a
  * line to stdout reporting whether this was successful or not and
  * then flushing stdout. The output line format is described
  * below. The program exits with code 0 if all libraries were loaded
@@ -57,17 +57,23 @@ string error()
 
 string check(string soname, string descriptor)
 {
+//    cerr << "helper: trying: " << soname << endl;
+    
     void *handle = DLOPEN(soname, RTLD_NOW | RTLD_LOCAL);
     if (!handle) {
+//	cerr << "helper: failed to open" << endl;
 	return "Unable to open plugin library: " + error();
     }
 
     void *fn = DLSYM(handle, descriptor);
     if (!fn) {
+//	cerr << "helper: failed to find descriptor" << endl;
 	return "Failed to find plugin descriptor " + descriptor +
 	    " in library: " + error();
     }
 
+//    cerr << "helper: succeeded" << endl;
+    
     return "";
 }
 
@@ -78,7 +84,7 @@ int main(int argc, char **argv)
 
     if (argc != 2) {
 	cerr << "\nUsage:\n    " << argv[0] << " descriptorname\n"
-	    "\nwhere descriptorname is the name of a plugin descriptor function to be sought\n"
+	    "\nwhere descriptorname is the name of a plugin descriptor symbol to be sought\n"
 	    "in each library (e.g. vampGetPluginDescriptor for Vamp plugins). The list of\n"
 	    "candidate plugin library filenames is read from stdin.\n" << endl;
 	return 2;
