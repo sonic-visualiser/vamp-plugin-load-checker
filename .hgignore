@@ -2,6 +2,6 @@ syntax: glob
 *~
 *.o
 *.a
-checker
-helper
 Makefile*
+checker-client
+plugin-checker-helper

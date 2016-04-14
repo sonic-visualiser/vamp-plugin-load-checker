@@ -1,14 +1,8 @@
 
-TEMPLATE = app
+TEMPLATE = subdirs
+SUBDIRS = sub_checker_lib sub_checker_client sub_helper
 
-include(checker.pri)
-
-# Using the "console" CONFIG flag above should ensure this happens for
-# normal Windows builds, but this may be necessary when cross-compiling
-win32-x-g++:QMAKE_LFLAGS += -Wl,-subsystem,console
-    
-TARGET = checker
-
-SOURCES += \
-	checker.cpp
+sub_checker_lib.file = checker-lib.pro
+sub_checker_client.file = checker-client.pro
+sub_helper.file = helper.pro
 

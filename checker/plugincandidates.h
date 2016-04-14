@@ -54,6 +54,7 @@ public:
     PluginCandidates(std::string helperExecutableName);
 
     struct LogCallback {
+        virtual ~LogCallback() { }
         virtual void log(std::string) = 0;
     };
     

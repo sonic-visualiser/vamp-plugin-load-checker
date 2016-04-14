@@ -1,26 +1,14 @@
 
 TEMPLATE = app
 
-CONFIG += stl c++11 exceptions console warn_on
-CONFIG -= qt
+include(checker.pri)
 
 # Using the "console" CONFIG flag above should ensure this happens for
 # normal Windows builds, but this may be necessary when cross-compiling
 win32-x-g++:QMAKE_LFLAGS += -Wl,-subsystem,console
-
-!win32* {
-    QMAKE_CXXFLAGS += -Werror
-}
-
-linux* {
-    QMAKE_LFLAGS += -ldl
-}
-
-TARGET = plugin-checker-helper
-
-OBJECTS_DIR = o
-MOC_DIR = o
+    
+TARGET = checker-client
 
 SOURCES += \
-	src/helper.cpp
+	src/checker.cpp
 

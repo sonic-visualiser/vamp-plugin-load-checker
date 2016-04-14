@@ -9,12 +9,14 @@ QT -= xml network gui widgets
 OBJECTS_DIR = o
 MOC_DIR = o
 
+INCLUDEPATH += checker
+
 HEADERS += \
-	plugincandidates.h \
-	knownplugins.h
+	checker/plugincandidates.h \
+	checker/knownplugins.h
 
 SOURCES += \
-	plugincandidates.cpp \
-	knownplugins.cpp
+	src/plugincandidates.cpp \
+	src/knownplugins.cpp
 
         
