@@ -1,5 +1,7 @@
 syntax: glob
 *~
 *.o
+*.a
 checker
 helper
+Makefile*
