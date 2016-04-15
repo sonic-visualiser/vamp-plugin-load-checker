@@ -183,9 +183,9 @@ KnownPlugins::getFailureReport() const
     for (auto f: failures) {
 	os << "<li>" + f.library;
 	if (f.message != "") {
-	    os << " (" + f.message + ")";
+	    os << "<br><i>" + f.message + "</i>";
 	} else {
-	    os << " (unknown error)";
+	    os << "<br><i>unknown error</i>";
 	}
 	os << "</li>";
 
