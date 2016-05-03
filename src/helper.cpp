@@ -59,10 +59,50 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <process.h>
-#define DLOPEN(a,b)  LoadLibrary((a).toStdWString().c_str())
-#define DLSYM(a,b)   GetProcAddress((HINSTANCE)(a),(b))
+#include <string>
+#ifdef UNICODE
+static HMODULE LoadLibraryUTF8(std::string name) {
+    int n = name.size();
+    wchar_t *wname = new wchar_t[n*2+1];
+    MultiByteToWideChar(CP_UTF8, 0, name.c_str(), n, wname, n*2);
+    HMODULE h = LoadLibraryW(wname);
+    delete[] wname;
+    return h;
+}
+static std::string GetErrorText() {
+    wchar_t *buffer;
+    DWORD err = GetLastError();
+    FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        FORMAT_MESSAGE_FROM_SYSTEM |
+        FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        err,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPTSTR) &buffer,
+        0, NULL );
+    int n = wcslen(buffer);
+    char *text = new char[n*8 + 1];
+    WideCharToMultiByte(CP_UTF8, 0, buffer, n, text, n*8, 0, 0);
+    std::string s(text);
+    LocalFree(&buffer);
+    delete[] text;
+    for (int i = s.size(); i > 0; ) {
+        --i;
+        if (s[i] == '\n' || s[i] == '\r') {
+            s.erase(i, 1);
+        }
+    }
+    return s;
+}
+#define DLOPEN(a,b)  LoadLibraryUTF8(a)
+#else
+#define DLOPEN(a,b)  LoadLibrary((a).c_str())
+#define GetErrorText() ""
+#endif
+#define DLSYM(a,b)   (void *)GetProcAddress((HINSTANCE)(a),(b).c_str())
 #define DLCLOSE(a)   (!FreeLibrary((HINSTANCE)(a)))
-#define DLERROR()    ""
+#define DLERROR()    (GetErrorText())
 #else
 #include <dlfcn.h>
 #define DLOPEN(a,b)  dlopen((a).c_str(),(b))
@@ -80,7 +120,7 @@ using namespace std;
 
 string error()
 {
-    string e = dlerror();
+    string e = DLERROR();
     if (e == "") return "(unknown error)";
     else return e;
 }
@@ -89,13 +129,13 @@ string check(string soname, string descriptor)
 {
     void *handle = DLOPEN(soname, RTLD_NOW | RTLD_LOCAL);
     if (!handle) {
-	return "Unable to open plugin library: " + error();
+        return "Unable to open plugin library: " + error();
     }
 
     void *fn = DLSYM(handle, descriptor);
     if (!fn) {
-	return "Failed to find plugin descriptor " + descriptor +
-	    " in library: " + error();
+        return "Failed to find plugin descriptor " + descriptor +
+            " in library: " + error();
     }
 
     return "";
@@ -118,7 +158,8 @@ int main(int argc, char **argv)
     
     while (getline(cin, soname)) {
 	string report = check(soname, descriptor);
-	if (report != "") {
+
+    if (report != "") {
 	    cout << "FAILURE|" << soname << "|" << report << endl;
 	    allGood = false;
 	} else {
