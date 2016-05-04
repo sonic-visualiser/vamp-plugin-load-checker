@@ -94,6 +94,8 @@ PluginCandidates::getLibrariesInPath(vector<string> path)
 
 	for (unsigned int i = 0; i < dir.count(); ++i) {
             QString soname = dir.filePath(dir[i]);
+            // NB this means the library names passed to the helper
+            // are UTF-8 encoded
             candidates.push_back(soname.toStdString());
         }
     }

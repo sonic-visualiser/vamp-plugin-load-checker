@@ -147,25 +147,24 @@ int main(int argc, char **argv)
     string soname;
 
     if (argc != 2) {
-	cerr << "\nUsage:\n    " << argv[0] << " descriptorname\n"
-	    "\nwhere descriptorname is the name of a plugin descriptor symbol to be sought\n"
-	    "in each library (e.g. vampGetPluginDescriptor for Vamp plugins). The list of\n"
-	    "candidate plugin library filenames is read from stdin.\n" << endl;
-	return 2;
+        cerr << "\nUsage:\n    " << argv[0] << " descriptorname\n"
+            "\nwhere descriptorname is the name of a plugin descriptor symbol to be sought\n"
+            "in each library (e.g. vampGetPluginDescriptor for Vamp plugins). The list of\n"
+            "candidate plugin library filenames is read from stdin.\n" << endl;
+        return 2;
     }
 
     string descriptor = argv[1];
     
     while (getline(cin, soname)) {
-	string report = check(soname, descriptor);
-
-    if (report != "") {
-	    cout << "FAILURE|" << soname << "|" << report << endl;
-	    allGood = false;
-	} else {
-	    cout << "SUCCESS|" << soname << "|" << endl;
-	}
+        string report = check(soname, descriptor);
+        if (report != "") {
+            cout << "FAILURE|" << soname << "|" << report << endl;
+            allGood = false;
+        } else {
+            cout << "SUCCESS|" << soname << "|" << endl;
+        }
     }
-
+    
     return allGood ? 0 : 1;
 }
