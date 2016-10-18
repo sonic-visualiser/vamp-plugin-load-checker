@@ -162,7 +162,7 @@ PluginCandidates::runHelper(vector<string> libraries, string descriptor)
     t.start();
     int timeout = 3000; // ms
 
-    int buflen = 4096;
+    const int buflen = 4096;
     bool done = false;
     
     while (!done) {
