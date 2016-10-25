@@ -208,7 +208,7 @@ PluginCandidates::runHelper(vector<string> libraries, string descriptor)
         process.waitForFinished();
     }
 
-    log("helper completed");
+    log("helper completed\n");
     
     return output;
 }
