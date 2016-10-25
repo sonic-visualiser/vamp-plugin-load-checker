@@ -8,6 +8,8 @@ CONFIG -= qt
 # normal Windows builds, but this may be necessary when cross-compiling
 win32-x-g++:QMAKE_LFLAGS += -Wl,-subsystem,console
 
+macx*: CONFIG -= app_bundle
+
 !win32* {
     QMAKE_CXXFLAGS += -Werror
 }

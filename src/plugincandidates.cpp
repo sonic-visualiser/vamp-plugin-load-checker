@@ -150,7 +150,18 @@ PluginCandidates::runHelper(vector<string> libraries, string descriptor)
     process.setProcessChannelMode(QProcess::ForwardedErrorChannel);
     process.start(m_helper.c_str(), { descriptor.c_str() });
     if (!process.waitForStarted()) {
-	cerr << "helper failed to start" << endl;
+        QProcess::ProcessError err = process.error();
+        if (err == QProcess::FailedToStart) {
+            std::cerr << "Unable to start helper process " << m_helper
+                      << std::endl;
+        } else if (err == QProcess::Crashed) {
+            std::cerr << "Helper process " << m_helper
+                      << " crashed on startup" << std::endl;
+        } else {
+            std::cerr << "Helper process " << m_helper
+                      << " failed on startup with error code "
+                      << err << std::endl;
+        }
 	throw runtime_error("plugin load helper failed to start");
     }
     for (auto &lib: libraries) {
@@ -196,7 +207,9 @@ PluginCandidates::runHelper(vector<string> libraries, string descriptor)
         process.close();
         process.waitForFinished();
     }
-	
+
+    log("helper completed");
+    
     return output;
 }
 
