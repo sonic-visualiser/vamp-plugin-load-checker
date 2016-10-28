@@ -174,7 +174,7 @@ KnownPlugins::getFailureReport() const
 
     if (failures.empty()) return "";
 
-    int n = failures.size();
+    int n = int(failures.size());
     int i = 0;
 
     ostringstream os;
