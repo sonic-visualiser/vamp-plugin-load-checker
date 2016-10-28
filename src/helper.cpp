@@ -63,8 +63,10 @@
 #ifdef UNICODE
 static HMODULE LoadLibraryUTF8(std::string name) {
     int n = name.size();
-    wchar_t *wname = new wchar_t[n*2+1];
-    MultiByteToWideChar(CP_UTF8, 0, name.c_str(), n, wname, n*2);
+    int wn = MultiByteToWideChar(CP_UTF8, 0, name.c_str(), n, 0, 0);
+    wchar_t *wname = new wchar_t[wn+1];
+    wn = MultiByteToWideChar(CP_UTF8, 0, name.c_str(), n, wname, wn);
+    wname[wn] = L'\0';
     HMODULE h = LoadLibraryW(wname);
     delete[] wname;
     return h;
@@ -81,9 +83,11 @@ static std::string GetErrorText() {
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
         (LPTSTR) &buffer,
         0, NULL );
-    int n = wcslen(buffer);
-    char *text = new char[n*8 + 1];
-    WideCharToMultiByte(CP_UTF8, 0, buffer, n, text, n*8, 0, 0);
+    int wn = wcslen(buffer);
+    int n = WideCharToMultiByte(CP_UTF8, 0, buffer, wn, 0, 0, 0, 0);
+    char *text = new char[n+1];
+    n = WideCharToMultiByte(CP_UTF8, 0, buffer, wn, text, n, 0, 0);
+    text[n] = '\0';
     std::string s(text);
     LocalFree(&buffer);
     delete[] text;
