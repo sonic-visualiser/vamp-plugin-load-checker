@@ -62,6 +62,10 @@ public:
         return m_candidates.getCandidateLibrariesFor(getTagFor(type));
     }
 
+    std::string getHelperExecutableName() const {
+        return m_helperExecutableName;
+    }
+
     std::string getFailureReport() const;
     
 private:
