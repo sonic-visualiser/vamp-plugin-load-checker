@@ -46,32 +46,32 @@ KnownPlugins::KnownPlugins(string helperExecutableName,
     m_candidates.setLogCallback(cb);
     
     m_known = {
-	{
-	    VampPlugin,
-	    {
-		"vamp",
-		expandConventionalPath(VampPlugin, "VAMP_PATH"),
-		"vampGetPluginDescriptor"
-	    },
-	}, {
-	    LADSPAPlugin,
-	    {
-		"ladspa",
-		expandConventionalPath(LADSPAPlugin, "LADSPA_PATH"),
-		"ladspa_descriptor"
-	    },
-	}, {
-	    DSSIPlugin,
-	    {
-		"dssi",
-		expandConventionalPath(DSSIPlugin, "DSSI_PATH"),
-		"dssi_descriptor"
-	    }
-	}
+        {
+            VampPlugin,
+            {
+                "vamp",
+                expandConventionalPath(VampPlugin, "VAMP_PATH"),
+                "vampGetPluginDescriptor"
+            },
+        }, {
+            LADSPAPlugin,
+            {
+                "ladspa",
+                expandConventionalPath(LADSPAPlugin, "LADSPA_PATH"),
+                "ladspa_descriptor"
+            },
+        }, {
+            DSSIPlugin,
+            {
+                "dssi",
+                expandConventionalPath(DSSIPlugin, "DSSI_PATH"),
+                "dssi_descriptor"
+            }
+        }
     };
 
     for (const auto &k: m_known) {
-	m_candidates.scan(k.second.tag, k.second.path, k.second.descriptor);
+        m_candidates.scan(k.second.tag, k.second.path, k.second.descriptor);
     }
 }
 
@@ -83,29 +83,29 @@ KnownPlugins::getDefaultPath(PluginType type)
 #if defined(_WIN32)
 
     case VampPlugin:
-	return "%ProgramFiles%\\Vamp Plugins";
+        return "%ProgramFiles%\\Vamp Plugins";
     case LADSPAPlugin:
-	return "%ProgramFiles%\\LADSPA Plugins;%ProgramFiles%\\Audacity\\Plug-Ins";
+        return "%ProgramFiles%\\LADSPA Plugins;%ProgramFiles%\\Audacity\\Plug-Ins";
     case DSSIPlugin:
-	return "%ProgramFiles%\\DSSI Plugins";
-	
+        return "%ProgramFiles%\\DSSI Plugins";
+        
 #elif defined(__APPLE__)
-	
+        
     case VampPlugin:
-	return "$HOME/Library/Audio/Plug-Ins/Vamp:/Library/Audio/Plug-Ins/Vamp";
+        return "$HOME/Library/Audio/Plug-Ins/Vamp:/Library/Audio/Plug-Ins/Vamp";
     case LADSPAPlugin:
-	return "$HOME/Library/Audio/Plug-Ins/LADSPA:/Library/Audio/Plug-Ins/LADSPA";
+        return "$HOME/Library/Audio/Plug-Ins/LADSPA:/Library/Audio/Plug-Ins/LADSPA";
     case DSSIPlugin:
-	return "$HOME/Library/Audio/Plug-Ins/DSSI:/Library/Audio/Plug-Ins/DSSI";
-	
+        return "$HOME/Library/Audio/Plug-Ins/DSSI:/Library/Audio/Plug-Ins/DSSI";
+        
 #else /* Linux, BSDs, etc */
-	
+        
     case VampPlugin:
-	return "$HOME/vamp:$HOME/.vamp:/usr/local/lib/vamp:/usr/lib/vamp";
+        return "$HOME/vamp:$HOME/.vamp:/usr/local/lib/vamp:/usr/lib/vamp";
     case LADSPAPlugin:
-	return "$HOME/ladspa:$HOME/.ladspa:/usr/local/lib/ladspa:/usr/lib/ladspa";
+        return "$HOME/ladspa:$HOME/.ladspa:/usr/local/lib/ladspa:/usr/lib/ladspa";
     case DSSIPlugin:
-	return "$HOME/dssi:$HOME/.dssi:/usr/local/lib/dssi:/usr/lib/dssi";
+        return "$HOME/dssi:$HOME/.dssi:/usr/local/lib/dssi:/usr/lib/dssi";
 #endif
     }
 
@@ -125,36 +125,36 @@ KnownPlugins::expandConventionalPath(PluginType type, string var)
 
         path = getDefaultPath(type);
 
-	if (path != "") {
+        if (path != "") {
 
-	    char *home = getenv("HOME");
-	    if (home) {
-		string::size_type f;
-		while ((f = path.find("$HOME")) != string::npos &&
-		       f < path.length()) {
-		    path.replace(f, 5, home);
-		}
-	    }
+            char *home = getenv("HOME");
+            if (home) {
+                string::size_type f;
+                while ((f = path.find("$HOME")) != string::npos &&
+                       f < path.length()) {
+                    path.replace(f, 5, home);
+                }
+            }
 
 #ifdef _WIN32
         const char *pfiles = getenv("ProgramFiles");
-	    if (!pfiles) pfiles = "C:\\Program Files";
-	    {
-		string::size_type f;
-		while ((f = path.find("%ProgramFiles%")) != string::npos &&
-		       f < path.length()) {
-		    path.replace(f, 14, pfiles);
-		}
-	    }
+            if (!pfiles) pfiles = "C:\\Program Files";
+            {
+                string::size_type f;
+                while ((f = path.find("%ProgramFiles%")) != string::npos &&
+                       f < path.length()) {
+                    path.replace(f, 14, pfiles);
+                }
+            }
 #endif
-	}
+        }
     }
 
     string::size_type index = 0, newindex = 0;
 
     while ((newindex = path.find(PATH_SEPARATOR, index)) < path.size()) {
-	pathList.push_back(path.substr(index, newindex - index).c_str());
-	index = newindex + 1;
+        pathList.push_back(path.substr(index, newindex - index).c_str());
+        index = newindex + 1;
     }
     
     pathList.push_back(path.substr(index));
@@ -168,8 +168,8 @@ KnownPlugins::getFailureReport() const
     vector<PluginCandidates::FailureRec> failures;
 
     for (auto t: getKnownPluginTypes()) {
-	auto ff = m_candidates.getFailedLibrariesFor(getTagFor(t));
-	failures.insert(failures.end(), ff.begin(), ff.end());
+        auto ff = m_candidates.getFailedLibrariesFor(getTagFor(t));
+        failures.insert(failures.end(), ff.begin(), ff.end());
     }
 
     if (failures.empty()) return "";
@@ -181,20 +181,20 @@ KnownPlugins::getFailureReport() const
     
     os << "<ul>";
     for (auto f: failures) {
-	os << "<li>" + f.library;
-	if (f.message != "") {
-	    os << "<br><i>" + f.message + "</i>";
-	} else {
-	    os << "<br><i>unknown error</i>";
-	}
-	os << "</li>";
+        os << "<li>" + f.library;
+        if (f.message != "") {
+            os << "<br><i>" + f.message + "</i>";
+        } else {
+            os << "<br><i>unknown error</i>";
+        }
+        os << "</li>";
 
-	if (n > 10) {
-	    if (++i == 5) {
-		os << "<li>(... and " << (n - i) << " further failures)</li>";
-		break;
-	    }
-	}
+        if (n > 10) {
+            if (++i == 5) {
+                os << "<li>(... and " << (n - i) << " further failures)</li>";
+                break;
+            }
+        }
     }
     os << "</ul>";
 

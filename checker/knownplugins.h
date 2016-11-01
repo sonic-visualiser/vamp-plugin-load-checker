@@ -42,33 +42,33 @@ class KnownPlugins
     
 public:
     enum PluginType {
-	VampPlugin,
-	LADSPAPlugin,
-	DSSIPlugin
+        VampPlugin,
+        LADSPAPlugin,
+        DSSIPlugin
     };
 
     KnownPlugins(std::string helperExecutableName,
                  PluginCandidates::LogCallback *cb = 0);
 
     std::vector<PluginType> getKnownPluginTypes() const {
-	return { VampPlugin, LADSPAPlugin, DSSIPlugin };
+        return { VampPlugin, LADSPAPlugin, DSSIPlugin };
     };
     
     std::string getTagFor(PluginType type) const {
-	return m_known.at(type).tag;
+        return m_known.at(type).tag;
     }
 
     stringlist getCandidateLibrariesFor(PluginType type) const {
-	return m_candidates.getCandidateLibrariesFor(getTagFor(type));
+        return m_candidates.getCandidateLibrariesFor(getTagFor(type));
     }
 
     std::string getFailureReport() const;
     
 private:
     struct TypeRec {
-	std::string tag;
-	stringlist path;
-	std::string descriptor;
+        std::string tag;
+        stringlist path;
+        std::string descriptor;
     };
     std::map<PluginType, TypeRec> m_known;
 

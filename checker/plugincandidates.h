@@ -72,8 +72,8 @@ public:
      *  Not thread-safe.
      */
     void scan(std::string tag,
-	      stringlist pluginPath,
-	      std::string descriptorSymbolName);
+              stringlist pluginPath,
+              std::string descriptorSymbolName);
 
     /** Return list of plugin library paths that were checked
      *  successfully during the scan for the given tag.
@@ -81,8 +81,8 @@ public:
     stringlist getCandidateLibrariesFor(std::string tag) const;
 
     struct FailureRec {
-	std::string library;
-	std::string message;
+        std::string library;
+        std::string message;
     };
 
     /** Return list of failure reports arising from the prior scan for
