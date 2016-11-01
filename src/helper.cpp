@@ -61,7 +61,9 @@
 #include <process.h>
 #include <string>
 #ifdef UNICODE
+static std::string lastLibraryName = "";
 static HMODULE LoadLibraryUTF8(std::string name) {
+    lastLibraryName = name;
     int n = name.size();
     int wn = MultiByteToWideChar(CP_UTF8, 0, name.c_str(), n, 0, 0);
     wchar_t *wname = new wchar_t[wn+1];
@@ -100,6 +102,10 @@ static std::string GetErrorText() {
         if (s[i] == '\n' || s[i] == '\r') {
             s.erase(i, 1);
         }
+    }
+    std::size_t pos = s.find("%1");
+    if (pos != std::string::npos && lastLibraryName != "") {
+        s.replace(pos, 2, lastLibraryName);
     }
     return s;
 }
