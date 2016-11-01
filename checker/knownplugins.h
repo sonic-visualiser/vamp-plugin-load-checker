@@ -76,6 +76,9 @@ private:
     std::string getDefaultPath(PluginType type);
 
     PluginCandidates m_candidates;
+    std::string m_helperExecutableName;
+
+    bool is32bit() const; // true if helper looks to be 32-bit on 64-bit system
 };
 
 #endif
