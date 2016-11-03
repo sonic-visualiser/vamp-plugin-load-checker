@@ -142,7 +142,7 @@ PluginCandidates::runHelper(vector<string> libraries, string descriptor)
 {
     vector<string> output;
 
-    log("running helper with following library list:\n");
+    log("running helper " + m_helper + " with following library list:\n");
     for (auto &lib: libraries) log(lib + "\n");
 
     QProcess process;
