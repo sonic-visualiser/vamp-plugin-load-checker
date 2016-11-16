@@ -55,6 +55,8 @@ public:
 
     struct LogCallback {
         virtual ~LogCallback() { }
+
+        /// implementation is responsible for adding \n and flushing output
         virtual void log(std::string) = 0;
     };
     
