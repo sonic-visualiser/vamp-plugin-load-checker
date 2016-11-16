@@ -155,7 +155,7 @@ string checkVampDescriptorFn(void *f)
     typedef const void *(*DFn)(unsigned int, unsigned int);
     DFn fn = DFn(f);
     unsigned int index = 0;
-    while (fn(1, index)) ++index;
+    while (fn(2, index)) ++index;
     if (index == 0) return "Library contains no plugins";
 //    else cerr << "Library contains " << index << " plugin(s)" << endl;
     return "";
