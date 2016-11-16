@@ -139,6 +139,28 @@ string error()
     else return e;
 }
 
+string checkLADSPAStyleDescriptorFn(void *f)
+{
+    typedef const void *(*DFn)(unsigned long);
+    DFn fn = DFn(f);
+    unsigned long index = 0;
+    while (fn(index)) ++index;
+    if (index == 0) return "Library contains no plugins";
+//    else cerr << "Library contains " << index << " plugin(s)" << endl;
+    return "";
+}
+
+string checkVampDescriptorFn(void *f)
+{
+    typedef const void *(*DFn)(unsigned int, unsigned int);
+    DFn fn = DFn(f);
+    unsigned int index = 0;
+    while (fn(1, index)) ++index;
+    if (index == 0) return "Library contains no plugins";
+//    else cerr << "Library contains " << index << " plugin(s)" << endl;
+    return "";
+}
+
 string check(string soname, string descriptor)
 {
     void *handle = DLOPEN(soname, RTLD_NOW | RTLD_LOCAL);
@@ -152,6 +174,17 @@ string check(string soname, string descriptor)
             " in library: " + error();
     }
 
+    if (descriptor == "ladspa_descriptor") {
+        return checkLADSPAStyleDescriptorFn(fn);
+    } else if (descriptor == "dssi_descriptor") {
+        return checkLADSPAStyleDescriptorFn(fn);
+    } else if (descriptor == "vampGetPluginDescriptor") {
+        return checkVampDescriptorFn(fn);
+    } else {
+        cerr << "Note: no descriptor logic known for descriptor function \""
+             << descriptor << "\"; not actually calling it" << endl;
+    }
+    
     return "";
 }
 
