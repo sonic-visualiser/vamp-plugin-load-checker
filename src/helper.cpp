@@ -56,6 +56,8 @@
     dealings in this Software without prior written authorization.
 */
 
+#include "../version.h"
+
 #ifdef _WIN32
 #include <windows.h>
 #include <process.h>
@@ -193,8 +195,23 @@ int main(int argc, char **argv)
     bool allGood = true;
     string soname;
 
-    if (argc != 2) {
-        cerr << "\nUsage:\n    " << argv[0] << " descriptorname\n"
+    bool showUsage = false;
+    
+    if (argc > 1) {
+        string opt = argv[1];
+        if (opt == "-?" || opt == "-h" || opt == "--help") {
+            showUsage = true;
+        } else if (opt == "-v" || opt == "--version") {
+            cout << CHECKER_VERSION << endl;
+            return 0;
+        }
+    } 
+    
+    if (argc != 2 || showUsage) {
+        cerr << endl;
+        cerr << "plugin-checker-helper: Test shared library objects for plugins to be" << endl;
+        cerr << "loaded via descriptor functions." << endl;
+        cerr << "\n    Usage: plugin-checker-helper <descriptorname>\n"
             "\nwhere descriptorname is the name of a plugin descriptor symbol to be sought\n"
             "in each library (e.g. vampGetPluginDescriptor for Vamp plugins). The list of\n"
             "candidate plugin library filenames is read from stdin.\n" << endl;
