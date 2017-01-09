@@ -18,7 +18,7 @@ It comes with a library (C++11, Qt) that searches for candidate plugin
 files for some known formats in standard locations and runs the
 checker program as a separate process to check whether they can be
 loaded. This can be used to scan plugins and blacklist any that might
-crash the host on load.
+crash a host on load.
 
 
 About the command-line program
@@ -83,6 +83,10 @@ library:
 
 $ qmake checker.pro
 $ make
+
+It also builds a program called checker-client which exercises the
+library by using a KnownPlugins object with the program it just
+compiled and printing out the results.
 
 To compile only the command-line program, you should be able to use a
 single C++ compiler invocation like:
