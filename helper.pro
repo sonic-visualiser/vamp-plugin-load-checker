@@ -18,7 +18,7 @@ linux* {
     QMAKE_LFLAGS += -ldl
 }
 
-TARGET = plugin-checker-helper
+TARGET = vamp-plugin-load-checker
 
 OBJECTS_DIR = o
 MOC_DIR = o

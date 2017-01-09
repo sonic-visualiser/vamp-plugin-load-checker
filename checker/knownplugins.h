@@ -36,6 +36,15 @@
 #include <map>
 #include <vector>
 
+/**
+ * Class to identify and list candidate shared-library files possibly
+ * containing plugins in a hardcoded set of known formats. Uses a
+ * separate process (the "helper", whose executable name must be
+ * provided at construction) to test-load each library in order to
+ * winnow out any that fail to load or crash on load.
+ *
+ * Requires C++11 and the Qt5 QtCore library.
+ */
 class KnownPlugins
 {
     typedef std::vector<std::string> stringlist;

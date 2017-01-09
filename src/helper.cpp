@@ -1,7 +1,7 @@
 /* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 
 /**
- * Plugin Load Checker Helper
+ * [Vamp] Plugin Load Checker
  *
  * This program accepts the name of a descriptor symbol as its only
  * command-line argument. It then reads a list of plugin library paths
@@ -21,6 +21,12 @@
  * Output line for failed load of library libname.so:
  * FAILURE|/path/to/libname.so|Reason for failure if available
  *
+ * Although this program was written for use with Vamp audio analysis
+ * plugins, it also works with other plugin formats. The program has
+ * some hardcoded knowledge of Vamp, LADSPA, and DSSI plugins, but it
+ * can be used with any plugins that involve loading DLLs and looking
+ * up descriptor functions from them.
+ *
  * Sometimes plugins will crash completely on load, bringing down this
  * program with them. If the program exits before all listed plugins
  * have been checked, this means that the plugin following the last
@@ -29,7 +35,7 @@
  */
 
 /*
-    Copyright (c) 2016 Queen Mary, University of London
+    Copyright (c) 2016-2017 Queen Mary, University of London
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation
@@ -57,6 +63,8 @@
 */
 
 #include "../version.h"
+
+static const char programName[] = "vamp-plugin-load-checker";
 
 #ifdef _WIN32
 #include <windows.h>
@@ -209,9 +217,9 @@ int main(int argc, char **argv)
     
     if (argc != 2 || showUsage) {
         cerr << endl;
-        cerr << "plugin-checker-helper: Test shared library objects for plugins to be" << endl;
+        cerr << programName << ": Test shared library objects for plugins to be" << endl;
         cerr << "loaded via descriptor functions." << endl;
-        cerr << "\n    Usage: plugin-checker-helper <descriptorname>\n"
+        cerr << "\n    Usage: " << programName << " <descriptorname>\n"
             "\nwhere descriptorname is the name of a plugin descriptor symbol to be sought\n"
             "in each library (e.g. vampGetPluginDescriptor for Vamp plugins). The list of\n"
             "candidate plugin library filenames is read from stdin.\n" << endl;

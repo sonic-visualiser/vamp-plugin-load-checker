@@ -42,7 +42,7 @@ struct LogCallback : PluginCandidates::LogCallback {
 int main(int, char **)
 {
     LogCallback cb;
-    KnownPlugins kp("./plugin-checker-helper", &cb); //!!!
+    KnownPlugins kp("./vamp-plugin-load-checker", &cb);
     
     for (auto t: kp.getKnownPluginTypes()) {
         cout << "successful libraries for plugin type \""

@@ -5,3 +5,4 @@ syntax: glob
 Makefile*
 checker-client
 plugin-checker-helper
+vamp-plugin-load-checker
