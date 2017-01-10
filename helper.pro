@@ -15,7 +15,7 @@ macx*: CONFIG -= app_bundle
 }
 
 linux* {
-    QMAKE_LFLAGS += -Wl,--start-group -ldl
+    LIBS += -ldl
 }
 
 TARGET = vamp-plugin-load-checker
