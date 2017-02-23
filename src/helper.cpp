@@ -228,6 +228,16 @@ int main(int argc, char **argv)
 
     string descriptor = argv[1];
     
+#ifdef _WIN32
+    // Avoid showing the error-handler dialog for missing DLLs,
+    // failing quietly instead. It's permissible for this program
+    // to simply fail when a DLL can't be loaded -- showing the
+    // error dialog wouldn't change this anyway, it would just
+    // block the program until the user clicked it away and then
+    // fail anyway.
+    SetErrorMode(SEM_FAILCRITICALERRORS);
+#endif
+
     while (getline(cin, soname)) {
         string report = check(soname, descriptor);
         if (report != "") {
