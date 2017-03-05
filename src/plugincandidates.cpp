@@ -175,7 +175,7 @@ PluginCandidates::runHelper(vector<string> libraries, string descriptor)
 
     QTime t;
     t.start();
-    int timeout = 3000; // ms
+    int timeout = 15000; // ms
 
     const int buflen = 4096;
     bool done = false;
