@@ -45,35 +45,48 @@ KnownPlugins::KnownPlugins(string helperExecutableName,
     m_helperExecutableName(helperExecutableName)
 {
     m_candidates.setLogCallback(cb);
+
+    std::string variableSuffix = "";
+    if (is32bit()) {
+        variableSuffix = "_32";
+    }
     
-    m_known = {
-        {
-            VampPlugin,
-            {
-                "vamp",
-                expandConventionalPath(VampPlugin, "VAMP_PATH"),
-                "vampGetPluginDescriptor"
-            },
-        }, {
-            LADSPAPlugin,
-            {
-                "ladspa",
-                expandConventionalPath(LADSPAPlugin, "LADSPA_PATH"),
-                "ladspa_descriptor"
-            },
-        }, {
-            DSSIPlugin,
-            {
-                "dssi",
-                expandConventionalPath(DSSIPlugin, "DSSI_PATH"),
-                "dssi_descriptor"
-            }
-        }
+    m_known[VampPlugin] = {
+        "vamp",
+        "VAMP_PATH" + variableSuffix,
+        expandConventionalPath(VampPlugin, "VAMP_PATH" + variableSuffix),
+        "vampGetPluginDescriptor"
+    };
+    
+    m_known[LADSPAPlugin] = {
+        "ladspa",
+        "LADSPA_PATH" + variableSuffix,
+        expandConventionalPath(LADSPAPlugin, "LADSPA_PATH" + variableSuffix),
+        "ladspa_descriptor"
+    };
+
+    m_known[DSSIPlugin] = {
+        "dssi",
+        "DSSI_PATH" + variableSuffix,
+        expandConventionalPath(DSSIPlugin, "DSSI_PATH" + variableSuffix),
+        "dssi_descriptor"
     };
 
     for (const auto &k: m_known) {
         m_candidates.scan(k.second.tag, k.second.path, k.second.descriptor);
     }
+}
+
+std::vector<KnownPlugins::PluginType>
+KnownPlugins::getKnownPluginTypes() const
+{
+    std::vector<PluginType> kt;
+
+    for (const auto &k: m_known) {
+        kt.push_back(k.first);
+    }
+
+    return kt;
 }
 
 bool
@@ -128,10 +141,6 @@ KnownPlugins::expandConventionalPath(PluginType type, string var)
     char *cpath = getenv(var.c_str());
     if (cpath) path = cpath;
 
-#ifdef _WIN32
-    bool is32 = is32bit();
-#endif
-
     if (path == "") {
 
         path = getDefaultPath(type);
@@ -149,23 +158,26 @@ KnownPlugins::expandConventionalPath(PluginType type, string var)
 
 #ifdef _WIN32
             const char *pfiles = 0;
-            if (is32) {
-                pfiles = getenv("ProgramFiles(x86)");
-            }
+            const char *pfiles32 = 0;
+
+            pfiles = getenv("ProgramFiles");
             if (!pfiles) {
-                pfiles = getenv("ProgramFiles");
+                pfiles = "C:\\Program Files";
             }
-            if (!pfiles) {
-                if (is32) {
-                    pfiles = "C:\\Program Files (x86)";
-                } else {
-                    pfiles = "C:\\Program Files";
-                }
+
+            pfiles32 = getenv("ProgramFiles(x86)");
+            if (!pfiles32) {
+                pfiles32 = "C:\\Program Files (x86)";
             }
+            
             string::size_type f;
             while ((f = path.find("%ProgramFiles%")) != string::npos &&
                    f < path.length()) {
-                path.replace(f, 14, pfiles);
+                if (is32bit()) {
+                    path.replace(f, 14, pfiles32);
+                } else {
+                    path.replace(f, 14, pfiles);
+                }
             }
 #endif
         }

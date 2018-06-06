@@ -59,9 +59,7 @@ public:
     KnownPlugins(std::string helperExecutableName,
                  PluginCandidates::LogCallback *cb = 0);
 
-    std::vector<PluginType> getKnownPluginTypes() const {
-        return { VampPlugin, LADSPAPlugin, DSSIPlugin };
-    };
+    std::vector<PluginType> getKnownPluginTypes() const;
     
     std::string getTagFor(PluginType type) const {
         return m_known.at(type).tag;
@@ -69,6 +67,14 @@ public:
 
     stringlist getCandidateLibrariesFor(PluginType type) const {
         return m_candidates.getCandidateLibrariesFor(getTagFor(type));
+    }
+
+    std::string getPathEnvironmentVariableFor(PluginType type) const {
+        return m_known.at(type).variable;
+    }
+    
+    stringlist getPathFor(PluginType type) const {
+        return m_known.at(type).path;
     }
 
     std::string getHelperExecutableName() const {
@@ -80,10 +86,12 @@ public:
 private:
     struct TypeRec {
         std::string tag;
+        std::string variable;
         stringlist path;
         std::string descriptor;
     };
-    std::map<PluginType, TypeRec> m_known;
+    typedef std::map<PluginType, TypeRec> Known;
+    Known m_known;
 
     stringlist expandConventionalPath(PluginType type, std::string var);
     std::string getDefaultPath(PluginType type);
@@ -91,7 +99,14 @@ private:
     PluginCandidates m_candidates;
     std::string m_helperExecutableName;
 
-    bool is32bit() const; // true if helper looks to be 32-bit on 64-bit system
+    /** This returns true if the helper has a name ending in "-32". By
+     *  our convention, this means that it is a 32-bit helper found on
+     *  a 64-bit system, so (depending on the OS) we may need to look
+     *  in 32-bit-specific paths. Note that is32bit() is *not* usually
+     *  true on 32-bit systems; it's used specifically to indicate a
+     *  "non-native" 32-bit helper.
+     */
+    bool is32bit() const;
 };
 
 #endif
