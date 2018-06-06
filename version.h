@@ -1,1 +1,1 @@
-#define CHECKER_VERSION "1.0"
+#define CHECKER_VERSION "2.0"

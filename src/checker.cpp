@@ -1,6 +1,6 @@
 /* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 /*
-    Copyright (c) 2016 Queen Mary, University of London
+    Copyright (c) 2016-2018 Queen Mary, University of London
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation
@@ -27,7 +27,7 @@
     dealings in this Software without prior written authorization.
 */
 
-#include "knownplugins.h"
+#include "knownplugincandidates.h"
 
 #include <iostream>
 
@@ -42,7 +42,7 @@ struct LogCallback : PluginCandidates::LogCallback {
 int main(int, char **)
 {
     LogCallback cb;
-    KnownPlugins kp("./vamp-plugin-load-checker", &cb);
+    KnownPluginCandidates kp("./vamp-plugin-load-checker", &cb);
     
     for (auto t: kp.getKnownPluginTypes()) {
         cout << "successful libraries for plugin type \""

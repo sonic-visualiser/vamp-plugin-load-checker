@@ -1,6 +1,6 @@
 /* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 /*
-  Copyright (c) 2016 Queen Mary, University of London
+  Copyright (c) 2016-2018 Queen Mary, University of London
 
   Permission is hereby granted, free of charge, to any person
   obtaining a copy of this software and associated documentation
@@ -29,8 +29,6 @@
 
 #include "knownplugins.h"
 
-#include <sstream>
-
 using namespace std;
 
 #if defined(_WIN32)
@@ -39,48 +37,45 @@ using namespace std;
 #define PATH_SEPARATOR ':'
 #endif
 
-KnownPlugins::KnownPlugins(string helperExecutableName,
-                           PluginCandidates::LogCallback *cb) :
-    m_candidates(helperExecutableName),
-    m_helperExecutableName(helperExecutableName)
+KnownPlugins::KnownPlugins(BinaryFormat format) :
+    m_format(format)
 {
-    m_candidates.setLogCallback(cb);
-
-    std::string variableSuffix = "";
-    if (is32bit()) {
+    string variableSuffix = "";
+    if (m_format == FormatNonNative32Bit) {
         variableSuffix = "_32";
     }
     
     m_known[VampPlugin] = {
         "vamp",
         "VAMP_PATH" + variableSuffix,
-        expandConventionalPath(VampPlugin, "VAMP_PATH" + variableSuffix),
+        {}, {},
         "vampGetPluginDescriptor"
     };
     
     m_known[LADSPAPlugin] = {
         "ladspa",
         "LADSPA_PATH" + variableSuffix,
-        expandConventionalPath(LADSPAPlugin, "LADSPA_PATH" + variableSuffix),
+        {}, {},
         "ladspa_descriptor"
     };
 
     m_known[DSSIPlugin] = {
         "dssi",
         "DSSI_PATH" + variableSuffix,
-        expandConventionalPath(DSSIPlugin, "DSSI_PATH" + variableSuffix),
+        {}, {},
         "dssi_descriptor"
     };
 
-    for (const auto &k: m_known) {
-        m_candidates.scan(k.second.tag, k.second.path, k.second.descriptor);
+    for (auto &k: m_known) {
+        k.second.defaultPath = expandPathString(getDefaultPathString(k.first));
+        k.second.path = expandConventionalPath(k.first, k.second.variable);
     }
 }
 
-std::vector<KnownPlugins::PluginType>
+vector<KnownPlugins::PluginType>
 KnownPlugins::getKnownPluginTypes() const
 {
-    std::vector<PluginType> kt;
+    vector<PluginType> kt;
 
     for (const auto &k: m_known) {
         kt.push_back(k.first);
@@ -89,14 +84,8 @@ KnownPlugins::getKnownPluginTypes() const
     return kt;
 }
 
-bool
-KnownPlugins::is32bit() const
-{
-    return m_helperExecutableName.find("-32") != std::string::npos;
-}
-
 string
-KnownPlugins::getDefaultPath(PluginType type)
+KnownPlugins::getUnexpandedDefaultPathString(PluginType type)
 {
     switch (type) {
 
@@ -132,56 +121,56 @@ KnownPlugins::getDefaultPath(PluginType type)
     throw logic_error("unknown or unhandled plugin type");
 }
 
-vector<string>
-KnownPlugins::expandConventionalPath(PluginType type, string var)
+string
+KnownPlugins::getDefaultPathString(PluginType type)
 {
-    vector<string> pathList;
-    string path;
-
-    char *cpath = getenv(var.c_str());
-    if (cpath) path = cpath;
+    string path = getUnexpandedDefaultPathString(type);
 
     if (path == "") {
+        return path;
+    }
 
-        path = getDefaultPath(type);
-
-        if (path != "") {
-
-            char *home = getenv("HOME");
-            if (home) {
-                string::size_type f;
-                while ((f = path.find("$HOME")) != string::npos &&
-                       f < path.length()) {
-                    path.replace(f, 5, home);
-                }
-            }
-
-#ifdef _WIN32
-            const char *pfiles = 0;
-            const char *pfiles32 = 0;
-
-            pfiles = getenv("ProgramFiles");
-            if (!pfiles) {
-                pfiles = "C:\\Program Files";
-            }
-
-            pfiles32 = getenv("ProgramFiles(x86)");
-            if (!pfiles32) {
-                pfiles32 = "C:\\Program Files (x86)";
-            }
-            
-            string::size_type f;
-            while ((f = path.find("%ProgramFiles%")) != string::npos &&
-                   f < path.length()) {
-                if (is32bit()) {
-                    path.replace(f, 14, pfiles32);
-                } else {
-                    path.replace(f, 14, pfiles);
-                }
-            }
-#endif
+    char *home = getenv("HOME");
+    if (home) {
+        string::size_type f;
+        while ((f = path.find("$HOME")) != string::npos &&
+               f < path.length()) {
+            path.replace(f, 5, home);
         }
     }
+
+#ifdef _WIN32
+    const char *pfiles = 0;
+    const char *pfiles32 = 0;
+
+    pfiles = getenv("ProgramFiles");
+    if (!pfiles) {
+        pfiles = "C:\\Program Files";
+    }
+    
+    pfiles32 = getenv("ProgramFiles(x86)");
+    if (!pfiles32) {
+        pfiles32 = "C:\\Program Files (x86)";
+    }
+    
+    string::size_type f;
+    while ((f = path.find("%ProgramFiles%")) != string::npos &&
+           f < path.length()) {
+        if (m_format == FormatNonNative32Bit) {
+            path.replace(f, 14, pfiles32);
+        } else {
+            path.replace(f, 14, pfiles);
+        }
+    }
+#endif
+
+    return path;
+}
+
+vector<string>
+KnownPlugins::expandPathString(string path)
+{
+    vector<string> pathList;
 
     string::size_type index = 0, newindex = 0;
 
@@ -195,41 +184,16 @@ KnownPlugins::expandConventionalPath(PluginType type, string var)
     return pathList;
 }
 
-string
-KnownPlugins::getFailureReport() const
+vector<string>
+KnownPlugins::expandConventionalPath(PluginType type, string var)
 {
-    vector<PluginCandidates::FailureRec> failures;
+    string path;
 
-    for (auto t: getKnownPluginTypes()) {
-        auto ff = m_candidates.getFailedLibrariesFor(getTagFor(t));
-        failures.insert(failures.end(), ff.begin(), ff.end());
+    char *cpath = getenv(var.c_str());
+    if (cpath) path = cpath;
+    if (path == "") {
+        path = getDefaultPathString(type);
     }
 
-    if (failures.empty()) return "";
-
-    int n = int(failures.size());
-    int i = 0;
-
-    ostringstream os;
-    
-    os << "<ul>";
-    for (auto f: failures) {
-        os << "<li>" + f.library;
-        if (f.message != "") {
-            os << "<br><i>" + f.message + "</i>";
-        } else {
-            os << "<br><i>unknown error</i>";
-        }
-        os << "</li>";
-
-        if (n > 10) {
-            if (++i == 5) {
-                os << "<li>(... and " << (n - i) << " further failures)</li>";
-                break;
-            }
-        }
-    }
-    os << "</ul>";
-
-    return os.str();
+    return expandPathString(path);
 }
