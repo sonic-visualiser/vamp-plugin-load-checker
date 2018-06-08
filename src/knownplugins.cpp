@@ -29,13 +29,78 @@
 
 #include "knownplugins.h"
 
+#include <iostream>
+
 using namespace std;
 
 #if defined(_WIN32)
+#include <windows.h>
 #define PATH_SEPARATOR ';'
 #else
 #define PATH_SEPARATOR ':'
 #endif
+
+static bool
+getEnvUtf8(std::string variable, std::string &value)
+{
+    value = "";
+    
+#ifdef _WIN32
+    int wvarlen = MultiByteToWideChar(CP_UTF8, 0,
+                                      variable.c_str(), int(variable.length()),
+                                      0, 0);
+    if (wvarlen < 0) {
+        cerr << "WARNING: Unable to convert environment variable name "
+             << variable << " to wide characters" << endl;
+        return false;
+    }
+    
+    wchar_t *wvarbuf = new wchar_t[wvarlen + 1];
+    (void)MultiByteToWideChar(CP_UTF8, 0,
+                              variable.c_str(), int(variable.length()),
+                              wvarbuf, wvarlen);
+    wvarbuf[wvarlen] = L'\0';
+    
+    wchar_t *wvalue = _wgetenv(wvarbuf);
+
+    delete[] wvarbuf;
+
+    if (!wvalue) {
+        return false;
+    }
+
+    int wvallen = int(wcslen(wvalue));
+    int vallen = WideCharToMultiByte(CP_UTF8, 0,
+                                     wvalue, wvallen,
+                                     0, 0, 0, 0);
+    if (vallen < 0) {
+        cerr << "WARNING: Unable to convert environment value to UTF-8" << endl;
+        return false;
+    }
+
+    char *val = new char[vallen + 1];
+    (void)WideCharToMultiByte(CP_UTF8, 0,
+                              wvalue, wvallen,
+                              val, vallen, 0, 0);
+    val[vallen] = '\0';
+
+    value = val;
+
+    delete[] val;
+    return true;
+
+#else
+
+    char *val = getenv(variable.c_str());
+    if (!val) {
+        return false;
+    }
+
+    value = val;
+    return true;
+    
+#endif
+}
 
 KnownPlugins::KnownPlugins(BinaryFormat format) :
     m_format(format)
@@ -130,8 +195,8 @@ KnownPlugins::getDefaultPathString(PluginType type)
         return path;
     }
 
-    char *home = getenv("HOME");
-    if (home) {
+    string home;
+    if (getEnvUtf8("HOME", home)) {
         string::size_type f;
         while ((f = path.find("$HOME")) != string::npos &&
                f < path.length()) {
@@ -140,16 +205,11 @@ KnownPlugins::getDefaultPathString(PluginType type)
     }
 
 #ifdef _WIN32
-    const char *pfiles = 0;
-    const char *pfiles32 = 0;
-
-    pfiles = getenv("ProgramFiles");
-    if (!pfiles) {
+    string pfiles, pfiles32;
+    if (!getEnvUtf8("ProgramFiles", pfiles)) {
         pfiles = "C:\\Program Files";
     }
-    
-    pfiles32 = getenv("ProgramFiles(x86)");
-    if (!pfiles32) {
+    if (!getEnvUtf8("ProgramFiles(x86)", pfiles32)) {
         pfiles32 = "C:\\Program Files (x86)";
     }
     
@@ -189,9 +249,7 @@ KnownPlugins::expandConventionalPath(PluginType type, string var)
 {
     string path;
 
-    char *cpath = getenv(var.c_str());
-    if (cpath) path = cpath;
-    if (path == "") {
+    if (!getEnvUtf8(var, path)) {
         path = getDefaultPathString(type);
     }
 
