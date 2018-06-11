@@ -27,77 +27,62 @@
     dealings in this Software without prior written authorization.
 */
 
-#ifndef KNOWN_PLUGINS_H
-#define KNOWN_PLUGINS_H
+#ifndef KNOWN_PLUGIN_CANDIDATES_H
+#define KNOWN_PLUGIN_CANDIDATES_H
+
+#include "plugincandidates.h"
+#include "knownplugins.h"
 
 #include <string>
 #include <map>
 #include <vector>
 
 /**
- * Class to provide information about a hardcoded set of known plugin
- * formats.
+ * Class to identify and list candidate shared-library files possibly
+ * containing plugins in a hardcoded set of known formats. Uses a
+ * separate process (the "helper", whose executable name must be
+ * provided at construction) to test-load each library in order to
+ * winnow out any that fail to load or crash on load.
+ *
+ * In v1 of the checker library this was the role of the KnownPlugins
+ * class, but that has been changed so that it only provides static
+ * known information about plugin formats and paths, and this class
+ * has been introduced instead (tying that static information together
+ * with a PluginCandidates object that handles the run-time query).
  *
  * Requires C++11 and the Qt5 QtCore library.
  */
-class KnownPlugins
+class KnownPluginCandidates
 {
     typedef std::vector<std::string> stringlist;
     
 public:
-    enum PluginType {
-        VampPlugin,
-        LADSPAPlugin,
-        DSSIPlugin
-    };
-
-    enum BinaryFormat {
-        FormatNative,
-        FormatNonNative32Bit // i.e. a 32-bit plugin but on a 64-bit host
-    };
+    KnownPluginCandidates(std::string helperExecutableName,
+                          PluginCandidates::LogCallback *cb = 0);
     
-    KnownPlugins(BinaryFormat format);
-
-    std::vector<PluginType> getKnownPluginTypes() const;
-    
-    std::string getTagFor(PluginType type) const {
-        return m_known.at(type).tag;
+    std::vector<KnownPlugins::PluginType> getKnownPluginTypes() const {
+        return m_known.getKnownPluginTypes();
     }
 
-    std::string getPathEnvironmentVariableFor(PluginType type) const {
-        return m_known.at(type).variable;
+    std::string getTagFor(KnownPlugins::PluginType type) const {
+        return m_known.getTagFor(type);
     }
     
-    stringlist getDefaultPathFor(PluginType type) const {
-        return m_known.at(type).defaultPath;
+    stringlist getCandidateLibrariesFor(KnownPlugins::PluginType type) const {
+        return m_candidates.getCandidateLibrariesFor(m_known.getTagFor(type));
     }
 
-    stringlist getPathFor(PluginType type) const {
-        return m_known.at(type).path;
+    std::string getHelperExecutableName() const {
+        return m_helperExecutableName;
     }
 
-    std::string getDescriptorFor(PluginType type) const {
-        return m_known.at(type).descriptor;
-    }
+    std::string getFailureReport() const;
     
 private:
-    struct TypeRec {
-        std::string tag;
-        std::string variable;
-        stringlist defaultPath;
-        stringlist path;
-        std::string descriptor;
-    };
-    typedef std::map<PluginType, TypeRec> Known;
-    Known m_known;
-
-    std::string getUnexpandedDefaultPathString(PluginType type);
-    std::string getDefaultPathString(PluginType type);
-    
-    stringlist expandPathString(std::string pathString);
-    stringlist expandConventionalPath(PluginType type, std::string variable);
-
-    BinaryFormat m_format;
+    KnownPlugins m_known;
+    PluginCandidates m_candidates;
+    std::string m_helperExecutableName;
 };
 
 #endif
+

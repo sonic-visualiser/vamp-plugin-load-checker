@@ -13,10 +13,12 @@ INCLUDEPATH += checker
 
 HEADERS += \
 	checker/plugincandidates.h \
+	checker/knownplugincandidates.h \
 	checker/knownplugins.h
 
 SOURCES += \
 	src/plugincandidates.cpp \
+	src/knownplugincandidates.cpp \
 	src/knownplugins.cpp
 
         
