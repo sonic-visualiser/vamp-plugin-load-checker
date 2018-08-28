@@ -69,8 +69,15 @@ static const char programName[] = "vamp-plugin-load-checker";
 #ifdef _WIN32
 #include <windows.h>
 #include <process.h>
+#endif
+
 #include <string>
-#ifdef UNICODE
+#include <iostream>
+
+#ifdef _WIN32
+#ifndef UNICODE
+#error "This must be compiled with UNICODE defined"
+#endif
 static std::string lastLibraryName = "";
 static HMODULE LoadLibraryUTF8(std::string name) {
     lastLibraryName = name;
@@ -84,16 +91,16 @@ static HMODULE LoadLibraryUTF8(std::string name) {
     return h;
 }
 static std::string GetErrorText() {
-    wchar_t *buffer;
     DWORD err = GetLastError();
-    FormatMessage(
+    wchar_t *buffer;
+    FormatMessageW(
         FORMAT_MESSAGE_ALLOCATE_BUFFER |
         FORMAT_MESSAGE_FROM_SYSTEM |
         FORMAT_MESSAGE_IGNORE_INSERTS,
         NULL,
         err,
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (LPTSTR) &buffer,
+        (LPWSTR) &buffer,
         0, NULL );
     int wn = wcslen(buffer);
     int n = WideCharToMultiByte(CP_UTF8, 0, buffer, wn, 0, 0, 0, 0);
@@ -120,10 +127,6 @@ static std::string GetErrorText() {
     return s;
 }
 #define DLOPEN(a,b)  LoadLibraryUTF8(a)
-#else
-#define DLOPEN(a,b)  LoadLibrary((a).c_str())
-#define GetErrorText() ""
-#endif
 #define DLSYM(a,b)   (void *)GetProcAddress((HINSTANCE)(a),(b).c_str())
 #define DLCLOSE(a)   (!FreeLibrary((HINSTANCE)(a)))
 #define DLERROR()    (GetErrorText())
@@ -134,9 +137,6 @@ static std::string GetErrorText() {
 #define DLCLOSE(a)   dlclose((a))
 #define DLERROR()    dlerror()
 #endif
-
-#include <string>
-#include <iostream>
 
 //#include <unistd.h>
 
@@ -156,7 +156,6 @@ string checkLADSPAStyleDescriptorFn(void *f)
     unsigned long index = 0;
     while (fn(index)) ++index;
     if (index == 0) return "Library contains no plugins";
-//    else cerr << "Library contains " << index << " plugin(s)" << endl;
     return "";
 }
 
@@ -167,7 +166,6 @@ string checkVampDescriptorFn(void *f)
     unsigned int index = 0;
     while (fn(2, index)) ++index;
     if (index == 0) return "Library contains no plugins";
-//    else cerr << "Library contains " << index << " plugin(s)" << endl;
     return "";
 }
 
@@ -178,24 +176,26 @@ string check(string soname, string descriptor)
         return "Unable to open plugin library: " + error();
     }
 
+    string msg = "";
+    
     void *fn = DLSYM(handle, descriptor);
     if (!fn) {
-        return "Failed to find plugin descriptor " + descriptor +
+        msg = "Failed to find plugin descriptor " + descriptor +
             " in library: " + error();
-    }
-
-    if (descriptor == "ladspa_descriptor") {
-        return checkLADSPAStyleDescriptorFn(fn);
+    } else if (descriptor == "ladspa_descriptor") {
+        msg = checkLADSPAStyleDescriptorFn(fn);
     } else if (descriptor == "dssi_descriptor") {
-        return checkLADSPAStyleDescriptorFn(fn);
+        msg = checkLADSPAStyleDescriptorFn(fn);
     } else if (descriptor == "vampGetPluginDescriptor") {
-        return checkVampDescriptorFn(fn);
+        msg = checkVampDescriptorFn(fn);
     } else {
         cerr << "Note: no descriptor logic known for descriptor function \""
              << descriptor << "\"; not actually calling it" << endl;
     }
+
+    DLCLOSE(handle);
     
-    return "";
+    return msg;
 }
 
 int main(int argc, char **argv)
