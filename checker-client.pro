@@ -12,5 +12,5 @@ macx*: CONFIG -= app_bundle
 TARGET = checker-client
 
 SOURCES += \
-	src/checker.cpp
+	src/checker-client.cpp
 
