@@ -12,6 +12,7 @@ MOC_DIR = o
 INCLUDEPATH += checker
 
 HEADERS += \
+        checker/checkcode.h \
 	checker/plugincandidates.h \
 	checker/knownplugincandidates.h \
 	checker/knownplugins.h

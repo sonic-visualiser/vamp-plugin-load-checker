@@ -19,7 +19,17 @@
  * SUCCESS|/path/to/libname.so|
  * 
  * Output line for failed load of library libname.so:
- * FAILURE|/path/to/libname.so|Reason for failure if available
+ * FAILURE|/path/to/libname.so|Error message [failureCode]
+ *
+ * or:
+ * FAILURE|/path/to/libname.so|[failureCode]
+ *
+ * where the error message is an optional system-level message, such
+ * as may be returned from strerror or similar (which should be in the
+ * native language for the system ready to show the user), and the
+ * failureCode in square brackets is a mandatory number corresponding
+ * to one of the PluginCandidates::FailureCode values (requiring
+ * conversion to a translated string by the client).
  *
  * Although this program was written for use with Vamp audio analysis
  * plugins, it also works with other plugin formats. The program has
@@ -64,6 +74,8 @@
 
 #include "../version.h"
 
+#include "../checker/checkcode.h"
+
 static const char programName[] = "vamp-plugin-load-checker";
 
 #ifdef _WIN32
@@ -78,7 +90,9 @@ static const char programName[] = "vamp-plugin-load-checker";
 #ifndef UNICODE
 #error "This must be compiled with UNICODE defined"
 #endif
+
 static std::string lastLibraryName = "";
+
 static HMODULE LoadLibraryUTF8(std::string name) {
     lastLibraryName = name;
     int n = name.size();
@@ -90,6 +104,7 @@ static HMODULE LoadLibraryUTF8(std::string name) {
     delete[] wname;
     return h;
 }
+
 static std::string GetErrorText() {
     DWORD err = GetLastError();
     wchar_t *buffer;
@@ -99,7 +114,7 @@ static std::string GetErrorText() {
         FORMAT_MESSAGE_IGNORE_INSERTS,
         NULL,
         err,
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        MAKELANGID(LANG_USER_DEFAULT, SUBLANG_USER_DEFAULT),
         (LPWSTR) &buffer,
         0, NULL );
     int wn = wcslen(buffer);
@@ -126,16 +141,20 @@ static std::string GetErrorText() {
     }
     return s;
 }
+
 #define DLOPEN(a,b)  LoadLibraryUTF8(a)
 #define DLSYM(a,b)   (void *)GetProcAddress((HINSTANCE)(a),(b).c_str())
 #define DLCLOSE(a)   (!FreeLibrary((HINSTANCE)(a)))
 #define DLERROR()    (GetErrorText())
+
 #else
+
 #include <dlfcn.h>
 #define DLOPEN(a,b)  dlopen((a).c_str(),(b))
 #define DLSYM(a,b)   dlsym((a),(b).c_str())
 #define DLCLOSE(a)   dlclose((a))
 #define DLERROR()    dlerror()
+
 #endif
 
 //#include <unistd.h>
@@ -144,50 +163,62 @@ using namespace std;
 
 string error()
 {
-    string e = DLERROR();
-    if (e == "") return "(unknown error)";
-    else return e;
+    return DLERROR();
 }
 
-string checkLADSPAStyleDescriptorFn(void *f)
+struct Result {
+    PluginCheckCode code;
+    string message;
+};
+
+Result checkLADSPAStyleDescriptorFn(void *f)
 {
     typedef const void *(*DFn)(unsigned long);
     DFn fn = DFn(f);
     unsigned long index = 0;
     while (fn(index)) ++index;
-    if (index == 0) return "Library contains no plugins";
-    return "";
+    if (index == 0) return { PluginCheckCode::FAIL_NO_PLUGINS, "" };
+    return { PluginCheckCode::SUCCESS, "" };
 }
 
-string checkVampDescriptorFn(void *f)
+Result checkVampDescriptorFn(void *f)
 {
     typedef const void *(*DFn)(unsigned int, unsigned int);
     DFn fn = DFn(f);
     unsigned int index = 0;
     while (fn(2, index)) ++index;
-    if (index == 0) return "Library contains no plugins";
-    return "";
+    if (index == 0) return { PluginCheckCode::FAIL_NO_PLUGINS, "" };
+    return { PluginCheckCode::SUCCESS, "" };
 }
 
-string check(string soname, string descriptor)
+Result check(string soname, string descriptor)
 {
     void *handle = DLOPEN(soname, RTLD_NOW | RTLD_LOCAL);
     if (!handle) {
-        return "Unable to open plugin library: " + error();
+        PluginCheckCode code = PluginCheckCode::FAIL_NOT_LOADABLE;
+        string message = error();
+#ifdef _WIN32
+        DWORD err = GetLastError();
+        if (err == ERROR_BAD_EXE_FORMAT) {
+            code = PluginCheckCode::FAIL_WRONG_ARCHITECTURE;
+        } else if (err == ERROR_MOD_NOT_FOUND) {
+            code = PluginCheckCode::FAIL_DEPENDENCY_MISSING;
+        }
+#endif
+        return { code, message };
     }
 
-    string msg = "";
+    Result result { PluginCheckCode::SUCCESS, "" };
     
     void *fn = DLSYM(handle, descriptor);
     if (!fn) {
-        msg = "Failed to find plugin descriptor " + descriptor +
-            " in library: " + error();
+        result = { PluginCheckCode::FAIL_DESCRIPTOR_MISSING, error() };
     } else if (descriptor == "ladspa_descriptor") {
-        msg = checkLADSPAStyleDescriptorFn(fn);
+        result = checkLADSPAStyleDescriptorFn(fn);
     } else if (descriptor == "dssi_descriptor") {
-        msg = checkLADSPAStyleDescriptorFn(fn);
+        result = checkLADSPAStyleDescriptorFn(fn);
     } else if (descriptor == "vampGetPluginDescriptor") {
-        msg = checkVampDescriptorFn(fn);
+        result = checkVampDescriptorFn(fn);
     } else {
         cerr << "Note: no descriptor logic known for descriptor function \""
              << descriptor << "\"; not actually calling it" << endl;
@@ -195,7 +226,7 @@ string check(string soname, string descriptor)
 
     DLCLOSE(handle);
     
-    return msg;
+    return result;
 }
 
 int main(int argc, char **argv)
@@ -210,7 +241,7 @@ int main(int argc, char **argv)
         if (opt == "-?" || opt == "-h" || opt == "--help") {
             showUsage = true;
         } else if (opt == "-v" || opt == "--version") {
-            cout << CHECKER_VERSION << endl;
+            cout << CHECKER_COMPATIBILITY_VERSION << endl;
             return 0;
         }
     } 
@@ -239,12 +270,19 @@ int main(int argc, char **argv)
 #endif
 
     while (getline(cin, soname)) {
-        string report = check(soname, descriptor);
-        if (report != "") {
-            cout << "FAILURE|" << soname << "|" << report << endl;
-            allGood = false;
-        } else {
+        Result result = check(soname, descriptor);
+        if (result.code == PluginCheckCode::SUCCESS) {
             cout << "SUCCESS|" << soname << "|" << endl;
+        } else {
+            if (result.message == "") {
+                cout << "FAILURE|" << soname
+                     << "|[" << int(result.code) << "]" << endl;
+            } else {
+                cout << "FAILURE|" << soname
+                     << "|" << result.message << " ["
+                     << int(result.code) << "]" << endl;
+            }
+            allGood = false;
         }
     }
     

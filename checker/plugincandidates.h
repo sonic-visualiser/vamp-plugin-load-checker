@@ -1,6 +1,6 @@
 /* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 /*
-    Copyright (c) 2016 Queen Mary, University of London
+    Copyright (c) 2016-2018 Queen Mary, University of London
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation
@@ -33,6 +33,8 @@
 #include <string>
 #include <vector>
 #include <map>
+
+#include "checkcode.h"
 
 /**
  * Class to identify and list candidate shared-library files possibly
@@ -81,9 +83,16 @@ public:
      *  successfully during the scan for the given tag.
      */
     stringlist getCandidateLibrariesFor(std::string tag) const;
-
+    
     struct FailureRec {
+
+        /// Path of failed library file
         std::string library;
+
+        /// General class of failure
+        PluginCheckCode code;
+
+        /// Optional additional system-level message, already translated
         std::string message;
     };
 
@@ -99,6 +108,7 @@ private:
     LogCallback *m_logCallback;
 
     stringlist getLibrariesInPath(stringlist path);
+    std::string getHelperCompatibilityVersion();
     stringlist runHelper(stringlist libraries, std::string descriptor);
     void recordResult(std::string tag, stringlist results);
     void log(std::string);

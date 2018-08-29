@@ -66,8 +66,8 @@ KnownPluginCandidates::KnownPluginCandidates(string helperExecutableName,
     }
 }
 
-string
-KnownPluginCandidates::getFailureReport() const
+vector<PluginCandidates::FailureRec>
+KnownPluginCandidates::getFailures() const
 {
     vector<PluginCandidates::FailureRec> failures;
 
@@ -76,6 +76,13 @@ KnownPluginCandidates::getFailureReport() const
         failures.insert(failures.end(), ff.begin(), ff.end());
     }
 
+    return failures;
+}
+
+string
+KnownPluginCandidates::getFailureReport() const
+{
+    auto failures = getFailures();
     if (failures.empty()) return "";
 
     int n = int(failures.size());
