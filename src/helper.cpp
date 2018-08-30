@@ -93,7 +93,7 @@ static const char programName[] = "vamp-plugin-load-checker";
 
 static std::string lastLibraryName = "";
 
-static HMODULE LoadLibraryUTF8(std::string name) {
+static HMODULE loadLibraryUTF8(std::string name) {
     lastLibraryName = name;
     int n = name.size();
     int wn = MultiByteToWideChar(CP_UTF8, 0, name.c_str(), n, 0, 0);
@@ -105,18 +105,23 @@ static HMODULE LoadLibraryUTF8(std::string name) {
     return h;
 }
 
-static std::string GetErrorText() {
+static std::string getErrorText() {
     DWORD err = GetLastError();
-    wchar_t *buffer;
+    wchar_t *buffer = 0;
     FormatMessageW(
         FORMAT_MESSAGE_ALLOCATE_BUFFER |
         FORMAT_MESSAGE_FROM_SYSTEM |
         FORMAT_MESSAGE_IGNORE_INSERTS,
         NULL,
         err,
-        MAKELANGID(LANG_USER_DEFAULT, SUBLANG_USER_DEFAULT),
+        // the correct way to specify the user's default language,
+        // according to all resources I could find:
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
         (LPWSTR) &buffer,
         0, NULL );
+    if (!buffer) {
+        return "Unable to format error string (internal error)";
+    }
     int wn = wcslen(buffer);
     int n = WideCharToMultiByte(CP_UTF8, 0, buffer, wn, 0, 0, 0, 0);
     if (n < 0) {
@@ -129,6 +134,9 @@ static std::string GetErrorText() {
     std::string s(text);
     LocalFree(&buffer);
     delete[] text;
+    if (s == "") {
+        return s;
+    }
     for (int i = s.size(); i > 0; ) {
         --i;
         if (s[i] == '\n' || s[i] == '\r') {
@@ -142,10 +150,27 @@ static std::string GetErrorText() {
     return s;
 }
 
-#define DLOPEN(a,b)  LoadLibraryUTF8(a)
+#define DLOPEN(a,b)  loadLibraryUTF8(a)
 #define DLSYM(a,b)   (void *)GetProcAddress((HINSTANCE)(a),(b).c_str())
 #define DLCLOSE(a)   (!FreeLibrary((HINSTANCE)(a)))
-#define DLERROR()    (GetErrorText())
+#define DLERROR()    (getErrorText())
+
+static bool libraryExists(std::string name) {
+    if (name == "") return false;
+    int n = name.size();
+    int wn = MultiByteToWideChar(CP_UTF8, 0, name.c_str(), n, 0, 0);
+    wchar_t *wname = new wchar_t[wn+1];
+    wn = MultiByteToWideChar(CP_UTF8, 0, name.c_str(), n, wname, wn);
+    wname[wn] = L'\0';
+    FILE *f = _wfopen(wname, L"rb");
+    delete[] wname;
+    if (f) {
+        fclose(f);
+        return true;
+    } else {
+        return false;
+    }
+}
 
 #else
 
@@ -154,6 +179,17 @@ static std::string GetErrorText() {
 #define DLSYM(a,b)   dlsym((a),(b).c_str())
 #define DLCLOSE(a)   dlclose((a))
 #define DLERROR()    dlerror()
+
+static bool libraryExists(std::string name) {
+    if (name == "") return false;
+    FILE *f = fopen(name.c_str(), "r");
+    if (f) {
+        fclose(f);
+        return true;
+    } else {
+        return false;
+    }
+}
 
 #endif
 
@@ -202,7 +238,15 @@ Result check(string soname, string descriptor)
         if (err == ERROR_BAD_EXE_FORMAT) {
             code = PluginCheckCode::FAIL_WRONG_ARCHITECTURE;
         } else if (err == ERROR_MOD_NOT_FOUND) {
-            code = PluginCheckCode::FAIL_DEPENDENCY_MISSING;
+            if (libraryExists(soname)) {
+                code = PluginCheckCode::FAIL_DEPENDENCY_MISSING;
+            } else {
+                code = PluginCheckCode::FAIL_LIBRARY_NOT_FOUND;
+            }
+        }
+#else
+        if (!libraryExists(soname)) {
+            code = PluginCheckCode::FAIL_LIBRARY_NOT_FOUND;
         }
 #endif
         return { code, message };

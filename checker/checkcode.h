@@ -46,9 +46,10 @@ enum class PluginCheckCode {
      */
     FAIL_WRONG_ARCHITECTURE = 2,
 
-    /** Plugin library depends on some other library that cannot
-     *  be loaded. On Windows this may arise from system error 126,
-     *  ERROR_MOD_NOT_FOUND
+    /** Plugin library depends on some other library that cannot be
+     *  loaded. On Windows this may arise from system error 126,
+     *  ERROR_MOD_NOT_FOUND, provided that the library file itself
+     *  exists
      */
     FAIL_DEPENDENCY_MISSING = 3,
 
