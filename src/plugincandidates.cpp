@@ -119,7 +119,7 @@ PluginCandidates::scan(string tag,
         log("wrong plugin checker helper version found: expected v" +
             string(CHECKER_COMPATIBILITY_VERSION) + ", found v" +
             helperVersion);
-        return;
+        throw runtime_error("wrong version of plugin load helper found");
     }
     
     vector<string> libraries = getLibrariesInPath(pluginPath);
