@@ -181,7 +181,7 @@ PluginCandidates::getHelperCompatibilityVersion()
         output.chop(1);
     }
 
-    string versionString = output.toStdString();
+    string versionString = QString(output).toStdString();
     log("read version string from helper: " + versionString);
     return versionString;
 }
