@@ -27,32 +27,51 @@
     dealings in this Software without prior written authorization.
 */
 
-#include "knownplugincandidates.h"
+#ifndef CHECK_CODE_H
+#define CHECK_CODE_H
 
-#include <iostream>
+enum class PluginCheckCode {
 
-using namespace std;
+    SUCCESS = 0,
 
-struct LogCallback : PluginCandidates::LogCallback {
-    virtual void log(string message) {
-        cerr << "checker: log: " << message << "\n";
-    }
+    /** Plugin library file is not found
+     */
+    FAIL_LIBRARY_NOT_FOUND = 1,
+
+    /** Plugin library does appear to be a library, but its
+     *  architecture differs from that of the checker program, in
+     *  a way that can be distinguished from other loader
+     *  failures. On Windows this may arise from system error 193,
+     *  ERROR_BAD_EXE_FORMAT
+     */
+    FAIL_WRONG_ARCHITECTURE = 2,
+
+    /** Plugin library depends on some other library that cannot be
+     *  loaded. On Windows this may arise from system error 126,
+     *  ERROR_MOD_NOT_FOUND, provided that the library file itself
+     *  exists
+     */
+    FAIL_DEPENDENCY_MISSING = 3,
+
+    /** Plugin library cannot be loaded for some other reason
+     */
+    FAIL_NOT_LOADABLE = 4,
+
+    /** Plugin library can be loaded, but the expected plugin
+     *  descriptor symbol is missing
+     */
+    FAIL_DESCRIPTOR_MISSING = 5,
+
+    /** Plugin library can be loaded and descriptor called, but no
+     *  plugins are found in it
+     */
+    FAIL_NO_PLUGINS = 6,
+
+    /** Failure but no meaningful error code provided, or failure
+     *  read from an older helper version that did not support
+     *  error codes
+     */
+    FAIL_OTHER = 7
 };
 
-int main(int, char **)
-{
-    LogCallback cb;
-    KnownPluginCandidates kp("./vamp-plugin-load-checker", &cb);
-    
-    for (auto t: kp.getKnownPluginTypes()) {
-        cout << "successful libraries for plugin type \""
-             << kp.getTagFor(t) << "\":" << endl;
-        for (auto lib: kp.getCandidateLibrariesFor(t)) {
-            cout << lib << endl;
-        }
-    }
-
-    cout << "Failure message (if any):" << endl;
-    cout << kp.getFailureReport() << endl;
-}
-
+#endif

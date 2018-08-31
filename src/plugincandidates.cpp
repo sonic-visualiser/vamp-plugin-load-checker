@@ -1,6 +1,6 @@
 /* -*- c-basic-offset: 4 indent-tabs-mode: nil -*-  vi:set ts=8 sts=4 sw=4: */
 /*
-  Copyright (c) 2016 Queen Mary, University of London
+  Copyright (c) 2016-2018 Queen Mary, University of London
 
   Permission is hereby granted, free of charge, to any person
   obtaining a copy of this software and associated documentation
@@ -28,6 +28,8 @@
 */
 
 #include "plugincandidates.h"
+
+#include "../version.h"
 
 #include <set>
 #include <stdexcept>
@@ -112,6 +114,14 @@ PluginCandidates::scan(string tag,
                        vector<string> pluginPath,
                        string descriptorSymbolName)
 {
+    string helperVersion = getHelperCompatibilityVersion();
+    if (helperVersion != CHECKER_COMPATIBILITY_VERSION) {
+        log("wrong plugin checker helper version found: expected v" +
+            string(CHECKER_COMPATIBILITY_VERSION) + ", found v" +
+            helperVersion);
+        throw runtime_error("wrong version of plugin load helper found");
+    }
+    
     vector<string> libraries = getLibrariesInPath(pluginPath);
     vector<string> remaining = libraries;
 
@@ -141,18 +151,14 @@ PluginCandidates::scan(string tag,
     recordResult(tag, result);
 }
 
-vector<string>
-PluginCandidates::runHelper(vector<string> libraries, string descriptor)
+string
+PluginCandidates::getHelperCompatibilityVersion()
 {
-    vector<string> output;
-
-    log("running helper " + m_helper + " with following library list:");
-    for (auto &lib: libraries) log(lib);
-
     QProcess process;
     process.setReadChannel(QProcess::StandardOutput);
     process.setProcessChannelMode(QProcess::ForwardedErrorChannel);
-    process.start(m_helper.c_str(), { descriptor.c_str() });
+    process.start(m_helper.c_str(), { "--version" });
+
     if (!process.waitForStarted()) {
         QProcess::ProcessError err = process.error();
         if (err == QProcess::FailedToStart) {
@@ -168,6 +174,47 @@ PluginCandidates::runHelper(vector<string> libraries, string descriptor)
         }
         throw runtime_error("plugin load helper failed to start");
     }
+    process.waitForFinished();
+
+    QByteArray output = process.readAllStandardOutput();
+    while (output.endsWith('\n') || output.endsWith('\r')) {
+        output.chop(1);
+    }
+
+    string versionString = QString(output).toStdString();
+    log("read version string from helper: " + versionString);
+    return versionString;
+}
+
+vector<string>
+PluginCandidates::runHelper(vector<string> libraries, string descriptor)
+{
+    vector<string> output;
+
+    log("running helper " + m_helper + " with following library list:");
+    for (auto &lib: libraries) log(lib);
+
+    QProcess process;
+    process.setReadChannel(QProcess::StandardOutput);
+    process.setProcessChannelMode(QProcess::ForwardedErrorChannel);
+    process.start(m_helper.c_str(), { descriptor.c_str() });
+    
+    if (!process.waitForStarted()) {
+        QProcess::ProcessError err = process.error();
+        if (err == QProcess::FailedToStart) {
+            std::cerr << "Unable to start helper process " << m_helper
+                      << std::endl;
+        } else if (err == QProcess::Crashed) {
+            std::cerr << "Helper process " << m_helper
+                      << " crashed on startup" << std::endl;
+        } else {
+            std::cerr << "Helper process " << m_helper
+                      << " failed on startup with error code "
+                      << err << std::endl;
+        }
+        throw runtime_error("plugin load helper failed to start");
+    }
+    
     for (auto &lib: libraries) {
         process.write(lib.c_str(), lib.size());
         process.write("\n", 1);
@@ -235,16 +282,43 @@ PluginCandidates::recordResult(string tag, vector<string> result)
         string status = bits[0].toStdString();
         
         string library = bits[1].toStdString();
-        if (bits.size() == 2) library = bits[1].trimmed().toStdString();
+        if (bits.size() == 2) {
+            library = bits[1].trimmed().toStdString();
+        }
 
-        string message = "";
-        if (bits.size() > 2) message = bits[2].trimmed().toStdString();
-        
         if (status == "SUCCESS") {
             m_candidates[tag].push_back(library);
 
         } else if (status == "FAILURE") {
-            m_failures[tag].push_back({ library, message });
+        
+            QString messageAndCode = "";
+            if (bits.size() > 2) {
+                messageAndCode = bits[2].trimmed();
+            }
+
+            PluginCheckCode code = PluginCheckCode::FAIL_OTHER;
+            string message = "";
+
+            QRegExp codeRE("^(.*) *\\[([0-9]+)\\]$");
+            if (codeRE.exactMatch(messageAndCode)) {
+                QStringList caps(codeRE.capturedTexts());
+                if (caps.length() == 3) {
+                    message = caps[1].toStdString();
+                    code = PluginCheckCode(caps[2].toInt());
+                    log("split failure report into message and failure code "
+                        + caps[2].toStdString());
+                } else {
+                    log("unable to split out failure code from report");
+                }
+            } else {
+                log("failure message does not give a failure code");
+            }
+
+            if (message == "") {
+                message = messageAndCode.toStdString();
+            }
+
+            m_failures[tag].push_back({ library, code, message });
 
         } else {
             log("unexpected status \"" + status + "\" in output line");

@@ -76,6 +76,9 @@ public:
         return m_helperExecutableName;
     }
 
+    std::vector<PluginCandidates::FailureRec> getFailures() const;
+
+    /** Return a non-localised HTML failure report */
     std::string getFailureReport() const;
     
 private:
