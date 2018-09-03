@@ -125,14 +125,14 @@ static std::string getErrorText() {
     int wn = wcslen(buffer);
     int n = WideCharToMultiByte(CP_UTF8, 0, buffer, wn, 0, 0, 0, 0);
     if (n < 0) {
-        LocalFree(&buffer);
+        LocalFree(buffer);
         return "Unable to convert error string (internal error)";
     }
     char *text = new char[n+1];
     (void)WideCharToMultiByte(CP_UTF8, 0, buffer, wn, text, n, 0, 0);
     text[n] = '\0';
     std::string s(text);
-    LocalFree(&buffer);
+    LocalFree(buffer);
     delete[] text;
     if (s == "") {
         return s;
