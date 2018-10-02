@@ -81,7 +81,12 @@ static const char programName[] = "vamp-plugin-load-checker";
 #ifdef _WIN32
 #include <windows.h>
 #include <process.h>
+#include <io.h>
+#else
+#include <unistd.h>
 #endif
+
+#include <fcntl.h>
 
 #include <string>
 #include <iostream>
@@ -273,6 +278,48 @@ Result check(string soname, string descriptor)
     return result;
 }
 
+// We write our output to stdout, but want to ensure that the plugin
+// doesn't write anything itself. To do this we open a null file
+// descriptor and dup2() it into place of stdout in the gaps between
+// our own output activity.
+
+static int normalFd = -1;
+static int suspendedFd = -1;
+
+static void initFds()
+{
+#ifdef _WIN32
+    normalFd = _dup(1);
+    suspendedFd = _open("NUL", _O_WRONLY);
+#else
+    normalFd = dup(1);
+    suspendedFd = open("/dev/null", O_WRONLY);
+#endif
+    
+    if (normalFd < 0 || suspendedFd < 0) {
+        throw runtime_error("Failed to initialise fds for stdio suspend/resume");
+    }
+}
+
+static void suspendOutput()
+{
+#ifdef _WIN32
+    _dup2(suspendedFd, 1);
+#else
+    dup2(suspendedFd, 1);
+#endif
+}
+
+static void resumeOutput()
+{
+    fflush(stdout);
+#ifdef _WIN32
+    _dup2(normalFd, 1);
+#else
+    dup2(normalFd, 1);
+#endif
+}
+
 int main(int argc, char **argv)
 {
     bool allGood = true;
@@ -313,8 +360,12 @@ int main(int argc, char **argv)
     SetErrorMode(SEM_FAILCRITICALERRORS);
 #endif
 
+    initFds();
+    suspendOutput();
+    
     while (getline(cin, soname)) {
         Result result = check(soname, descriptor);
+        resumeOutput();
         if (result.code == PluginCheckCode::SUCCESS) {
             cout << "SUCCESS|" << soname << "|" << endl;
         } else {
@@ -328,6 +379,7 @@ int main(int argc, char **argv)
             }
             allGood = false;
         }
+        suspendOutput();
     }
     
     return allGood ? 0 : 1;
