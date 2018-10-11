@@ -90,6 +90,7 @@ static const char programName[] = "vamp-plugin-load-checker";
 
 #include <string>
 #include <iostream>
+#include <stdexcept>
 
 #ifdef _WIN32
 #ifndef UNICODE
@@ -297,7 +298,8 @@ static void initFds()
 #endif
     
     if (normalFd < 0 || suspendedFd < 0) {
-        throw runtime_error("Failed to initialise fds for stdio suspend/resume");
+        throw std::runtime_error
+            ("Failed to initialise fds for stdio suspend/resume");
     }
 }
 
