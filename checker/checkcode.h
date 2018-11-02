@@ -53,25 +53,30 @@ enum class PluginCheckCode {
      */
     FAIL_DEPENDENCY_MISSING = 3,
 
+    /** Plugin library loading was refused for some security-related
+     *  reason
+     */
+    FAIL_FORBIDDEN = 4,
+
     /** Plugin library cannot be loaded for some other reason
      */
-    FAIL_NOT_LOADABLE = 4,
+    FAIL_NOT_LOADABLE = 5,
 
     /** Plugin library can be loaded, but the expected plugin
      *  descriptor symbol is missing
      */
-    FAIL_DESCRIPTOR_MISSING = 5,
+    FAIL_DESCRIPTOR_MISSING = 6,
 
     /** Plugin library can be loaded and descriptor called, but no
      *  plugins are found in it
      */
-    FAIL_NO_PLUGINS = 6,
+    FAIL_NO_PLUGINS = 7,
 
     /** Failure but no meaningful error code provided, or failure
      *  read from an older helper version that did not support
      *  error codes
      */
-    FAIL_OTHER = 7
+    FAIL_OTHER = 999
 };
 
 #endif

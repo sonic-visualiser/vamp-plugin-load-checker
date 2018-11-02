@@ -253,6 +253,12 @@ Result check(string soname, string descriptor)
 #else
         if (!libraryExists(soname)) {
             code = PluginCheckCode::FAIL_LIBRARY_NOT_FOUND;
+        } else if (errno == EPERM) {
+            // This may be unreliable, but it seems to be set by
+            // something dlopen() calls in the case where a library
+            // can't be loaded for code-signing-related reasons on
+            // macOS
+            code = PluginCheckCode::FAIL_FORBIDDEN;
         }
 #endif
         return { code, message };
@@ -375,6 +381,12 @@ int main(int argc, char **argv)
                 cout << "FAILURE|" << soname
                      << "|[" << int(result.code) << "]" << endl;
             } else {
+                for (size_t i = 0; i < result.message.size(); ++i) {
+                    if (result.message[i] == '\n' ||
+                        result.message[i] == '\r') {
+                        result.message[i] = ' ';
+                    }
+                }
                 cout << "FAILURE|" << soname
                      << "|" << result.message << " ["
                      << int(result.code) << "]" << endl;
