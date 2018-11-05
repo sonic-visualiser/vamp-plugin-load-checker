@@ -250,17 +250,24 @@ Result check(string soname, string descriptor)
                 code = PluginCheckCode::FAIL_LIBRARY_NOT_FOUND;
             }
         }
-#else
-        if (!libraryExists(soname)) {
-            code = PluginCheckCode::FAIL_LIBRARY_NOT_FOUND;
-        } else if (errno == EPERM) {
+#else  // !_WIN32
+#ifdef __APPLE__
+        if (errno == EPERM) {
             // This may be unreliable, but it seems to be set by
             // something dlopen() calls in the case where a library
             // can't be loaded for code-signing-related reasons on
             // macOS
             code = PluginCheckCode::FAIL_FORBIDDEN;
+        } else if (!libraryExists(soname)) {
+            code = PluginCheckCode::FAIL_LIBRARY_NOT_FOUND;
         }
-#endif
+#else  // !__APPLE__
+        if (!libraryExists(soname)) {
+            code = PluginCheckCode::FAIL_LIBRARY_NOT_FOUND;
+        }
+#endif // !__APPLE__
+#endif // !_WIN32
+
         return { code, message };
     }
 
