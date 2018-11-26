@@ -51,7 +51,7 @@ using namespace std;
 
 PluginCandidates::PluginCandidates(string helperExecutableName) :
     m_helper(helperExecutableName),
-    m_logCallback(0)
+    m_logCallback(nullptr)
 {
 }
 
