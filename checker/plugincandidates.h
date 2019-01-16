@@ -36,6 +36,8 @@
 
 #include "checkcode.h"
 
+class QProcess;
+
 /**
  * Class to identify and list candidate shared-library files possibly
  * containing plugins. Uses a separate process (the "helper", whose
@@ -111,6 +113,7 @@ private:
     std::string getHelperCompatibilityVersion();
     stringlist runHelper(stringlist libraries, std::string descriptor);
     void recordResult(std::string tag, stringlist results);
+    void logErrors(QProcess *);
     void log(std::string);
 };
 

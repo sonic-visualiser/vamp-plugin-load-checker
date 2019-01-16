@@ -272,7 +272,7 @@ Result check(string soname, string descriptor)
     }
 
     Result result { PluginCheckCode::SUCCESS, "" };
-    
+
     void *fn = DLSYM(handle, descriptor);
     if (!fn) {
         result = { PluginCheckCode::FAIL_DESCRIPTOR_MISSING, error() };
