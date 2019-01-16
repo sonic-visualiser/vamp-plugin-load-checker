@@ -284,7 +284,6 @@ PluginCandidates::logErrors(QProcess *p)
 
     qint64 byteCount = p->bytesAvailable();
     if (byteCount == 0) {
-        log("Helper emitted no stderr output");
         p->setReadChannel(QProcess::StandardOutput);
         return;
     }
