@@ -1,5 +1,5 @@
 
-CONFIG += qt stl c++11 exceptions console warn_on object_parallel_to_source
+CONFIG += qt stl c++11 exceptions console warn_on 
 QT -= xml network gui widgets
 
 !win32 {
