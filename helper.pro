@@ -26,3 +26,7 @@ MOC_DIR = o
 SOURCES += \
 	src/helper.cpp
 
+exists(../platform-helpers.pri) {
+	include(../platform-helpers.pri)
+}
+
