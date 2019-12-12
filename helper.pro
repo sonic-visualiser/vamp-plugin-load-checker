@@ -11,7 +11,7 @@ win32-x-g++:QMAKE_LFLAGS += -Wl,-subsystem,console
 macx*: CONFIG -= app_bundle
 
 !win32* {
-    QMAKE_CXXFLAGS += -Werror
+    QMAKE_CXXFLAGS_DEBUG += -Werror
 }
 
 linux* {
