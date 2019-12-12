@@ -3,7 +3,7 @@ CONFIG += qt stl c++11 exceptions console warn_on
 QT -= xml network gui widgets
 
 !win32 {
-    QMAKE_CXXFLAGS += -Werror
+    QMAKE_CXXFLAGS_DEBUG += -Werror
 }
 
 OBJECTS_DIR = o
