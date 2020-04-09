@@ -92,15 +92,14 @@ static const char programName[] = "vamp-plugin-load-checker";
 #include <iostream>
 #include <stdexcept>
 
+static std::string currentSoname = "";
+
 #ifdef _WIN32
 #ifndef UNICODE
 #error "This must be compiled with UNICODE defined"
 #endif
 
-static std::string lastLibraryName = "";
-
 static HMODULE loadLibraryUTF8(std::string name) {
-    lastLibraryName = name;
     int n = name.size();
     int wn = MultiByteToWideChar(CP_UTF8, 0, name.c_str(), n, 0, 0);
     wchar_t *wname = new wchar_t[wn+1];
@@ -150,8 +149,8 @@ static std::string getErrorText() {
         }
     }
     std::size_t pos = s.find("%1");
-    if (pos != std::string::npos && lastLibraryName != "") {
-        s.replace(pos, 2, lastLibraryName);
+    if (pos != std::string::npos && currentSoname != "") {
+        s.replace(pos, 2, currentSoname);
     }
     return s;
 }
@@ -198,8 +197,6 @@ static bool libraryExists(std::string name) {
 }
 
 #endif
-
-//#include <unistd.h>
 
 using namespace std;
 
@@ -335,6 +332,14 @@ static void resumeOutput()
 #endif
 }
 
+static void
+signalHandler(int signal)
+{
+    cerr << "Signal " << signal << " caught" << endl;
+    cout << "FAILURE|" << currentSoname << "|[" << int(PluginCheckCode::FAIL_NOT_LOADABLE) << "]" << endl;
+    exit(1);
+}
+
 int main(int argc, char **argv)
 {
     bool allGood = true;
@@ -363,6 +368,18 @@ int main(int argc, char **argv)
         return 2;
     }
 
+    signal(SIGINT,  signalHandler);
+    signal(SIGTERM, signalHandler);
+
+#ifndef _WIN32
+    signal(SIGHUP,  signalHandler);
+    signal(SIGQUIT, signalHandler);
+    signal(SIGILL,  signalHandler);
+    signal(SIGABRT, signalHandler);
+    signal(SIGSEGV, signalHandler);
+    signal(SIGBUS,  signalHandler);
+#endif
+
     string descriptor = argv[1];
     
 #ifdef _WIN32
@@ -379,6 +396,9 @@ int main(int argc, char **argv)
     suspendOutput();
     
     while (getline(cin, soname)) {
+
+        currentSoname = soname;
+
         Result result = check(soname, descriptor);
         resumeOutput();
         if (result.code == PluginCheckCode::SUCCESS) {
