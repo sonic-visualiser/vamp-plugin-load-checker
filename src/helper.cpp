@@ -84,6 +84,7 @@ static const char programName[] = "vamp-plugin-load-checker";
 #include <io.h>
 #else
 #include <unistd.h>
+#include <signal.h>
 #endif
 
 #include <fcntl.h>
