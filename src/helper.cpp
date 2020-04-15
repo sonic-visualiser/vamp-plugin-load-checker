@@ -84,9 +84,9 @@ static const char programName[] = "vamp-plugin-load-checker";
 #include <io.h>
 #else
 #include <unistd.h>
-#include <signal.h>
 #endif
 
+#include <signal.h>
 #include <fcntl.h>
 
 #include <string>
@@ -371,13 +371,14 @@ int main(int argc, char **argv)
 
     signal(SIGINT,  signalHandler);
     signal(SIGTERM, signalHandler);
+    signal(SIGSEGV, signalHandler);
+    signal(SIGILL,  signalHandler);
+    signal(SIGABRT, signalHandler);
+    signal(SIGFPE,  signalHandler);
 
 #ifndef _WIN32
     signal(SIGHUP,  signalHandler);
     signal(SIGQUIT, signalHandler);
-    signal(SIGILL,  signalHandler);
-    signal(SIGABRT, signalHandler);
-    signal(SIGSEGV, signalHandler);
     signal(SIGBUS,  signalHandler);
 #endif
 
