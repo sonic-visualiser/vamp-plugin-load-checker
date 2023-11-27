@@ -31,14 +31,14 @@
 
 #include <iostream>
 
-using namespace std;
-
 #if defined(_WIN32)
 #include <windows.h>
 #define PATH_SEPARATOR ';'
 #else
 #define PATH_SEPARATOR ':'
 #endif
+
+using namespace std;
 
 static bool
 getEnvUtf8(std::string variable, std::string &value)

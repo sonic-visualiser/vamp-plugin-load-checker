@@ -38,7 +38,7 @@
  * Class to provide information about a hardcoded set of known plugin
  * formats.
  *
- * Requires C++11 and the Qt5 QtCore library.
+ * Requires C++11 and the Qt5 or Qt6 QtCore library.
  */
 class KnownPlugins
 {
