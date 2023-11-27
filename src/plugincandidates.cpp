@@ -38,6 +38,7 @@
 #include <QProcess>
 #include <QDir>
 #include <QElapsedTimer>
+#include <QRegularExpression>
 
 #if defined(_WIN32)
 #define PLUGIN_GLOB "*.dll"
@@ -334,9 +335,10 @@ PluginCandidates::recordResult(string tag, vector<string> result)
             PluginCheckCode code = PluginCheckCode::FAIL_OTHER;
             string message = "";
 
-            QRegExp codeRE("^(.*) *\\[([0-9]+)\\]$");
-            if (codeRE.exactMatch(messageAndCode)) {
-                QStringList caps(codeRE.capturedTexts());
+            QRegularExpression codeRE("^(.*) *\\[([0-9]+)\\]$");
+            auto match = codeRE.match(messageAndCode);
+            if (match.hasMatch()) {
+                QStringList caps(match.capturedTexts());
                 if (caps.length() == 3) {
                     message = caps[1].toStdString();
                     code = PluginCheckCode(caps[2].toInt());
