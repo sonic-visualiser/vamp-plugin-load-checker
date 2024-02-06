@@ -72,6 +72,11 @@ enum class PluginCheckCode {
      */
     FAIL_NO_PLUGINS = 7,
 
+    /** Plugin library was on a list of libraries to ignore, so was
+     *  not attempted at all
+     */
+    FAIL_ON_IGNORE_LIST = 8,
+    
     /** Failure but no meaningful error code provided, or failure
      *  read from an older helper version that did not support
      *  error codes

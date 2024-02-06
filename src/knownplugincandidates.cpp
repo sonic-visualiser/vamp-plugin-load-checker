@@ -48,11 +48,12 @@ is32bit(string helperExecutableName)
 }
 
 KnownPluginCandidates::KnownPluginCandidates(string helperExecutableName,
+                                             stringlist librariesToIgnore,
                                              PluginCandidates::LogCallback *cb) :
     m_known(is32bit(helperExecutableName) ?
             KnownPlugins::FormatNonNative32Bit :
             KnownPlugins::FormatNative),
-    m_candidates(helperExecutableName),
+    m_candidates(helperExecutableName, librariesToIgnore),
     m_helperExecutableName(helperExecutableName)
 {
     m_candidates.setLogCallback(cb);
@@ -66,14 +67,17 @@ KnownPluginCandidates::KnownPluginCandidates(string helperExecutableName,
     }
 }
 
-vector<PluginCandidates::FailureRec>
+vector<pair<KnownPlugins::PluginType, PluginCandidates::FailureRec>>
 KnownPluginCandidates::getFailures() const
 {
-    vector<PluginCandidates::FailureRec> failures;
+    vector<pair<KnownPlugins::PluginType, PluginCandidates::FailureRec>>
+        failures;
 
     for (auto t: getKnownPluginTypes()) {
         auto ff = m_candidates.getFailedLibrariesFor(m_known.getTagFor(t));
-        failures.insert(failures.end(), ff.begin(), ff.end());
+        for (const auto &f : ff) {
+            failures.push_back({ t, f });
+        }
     }
 
     return failures;
@@ -91,7 +95,8 @@ KnownPluginCandidates::getFailureReport() const
     ostringstream os;
     
     os << "<ul>";
-    for (auto f: failures) {
+    for (auto p: failures) {
+        auto f = p.second;
         os << "<li>" + f.library;
         if (f.message != "") {
             os << "<br><i>" + f.message + "</i>";

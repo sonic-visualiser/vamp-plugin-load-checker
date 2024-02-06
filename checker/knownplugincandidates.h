@@ -58,6 +58,7 @@ class KnownPluginCandidates
     
 public:
     KnownPluginCandidates(std::string helperExecutableName,
+                          stringlist librariesToIgnore,
                           PluginCandidates::LogCallback *cb = 0);
     
     std::vector<KnownPlugins::PluginType> getKnownPluginTypes() const {
@@ -76,7 +77,8 @@ public:
         return m_helperExecutableName;
     }
 
-    std::vector<PluginCandidates::FailureRec> getFailures() const;
+    std::vector<std::pair<KnownPlugins::PluginType,
+                          PluginCandidates::FailureRec>> getFailures() const;
 
     /** Return a non-localised HTML failure report */
     std::string getFailureReport() const;

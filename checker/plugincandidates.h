@@ -33,6 +33,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 
 #include "checkcode.h"
 
@@ -55,7 +56,8 @@ public:
     /** Construct a PluginCandidates scanner that uses the given
      *  executable as its load check helper.
      */
-    PluginCandidates(std::string helperExecutableName);
+    PluginCandidates(std::string helperExecutableName,
+                     stringlist librariesToIgnore);
 
     struct LogCallback {
         virtual ~LogCallback() { }
@@ -107,6 +109,7 @@ private:
     std::string m_helper;
     std::map<std::string, stringlist> m_candidates;
     std::map<std::string, std::vector<FailureRec> > m_failures;
+    std::set<std::string> m_toIgnore;
     LogCallback *m_logCallback;
 
     stringlist getLibrariesInPath(stringlist path);

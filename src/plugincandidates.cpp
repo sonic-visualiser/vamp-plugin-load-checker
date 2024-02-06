@@ -50,10 +50,14 @@
 
 using namespace std;
 
-PluginCandidates::PluginCandidates(string helperExecutableName) :
+PluginCandidates::PluginCandidates(string helperExecutableName,
+                                   stringlist librariesToIgnore) :
     m_helper(helperExecutableName),
     m_logCallback(nullptr)
 {
+    for (auto library : librariesToIgnore) {
+        m_toIgnore.insert(library);
+    }
 }
 
 void
@@ -124,14 +128,27 @@ PluginCandidates::scan(string tag,
     }
     
     vector<string> libraries = getLibrariesInPath(pluginPath);
-    vector<string> remaining = libraries;
+    vector<string> remaining;
 
+    for (auto library : libraries) {
+        if (m_toIgnore.find(library) == m_toIgnore.end()) {
+            remaining.push_back(library);
+        } else {
+            m_failures[tag].push_back({
+                    library,
+                    PluginCheckCode::FAIL_ON_IGNORE_LIST,
+                    {}
+                });
+        }
+    }
+
+    int toTest = remaining.size();
     int runlimit = 20;
     int runcount = 0;
     
     vector<string> result;
     
-    while (result.size() < libraries.size() && runcount < runlimit) {
+    while (result.size() < toTest && runcount < runlimit) {
         vector<string> output = runHelper(remaining, descriptorSymbolName);
         result.insert(result.end(), output.begin(), output.end());
         int shortfall = int(remaining.size()) - int(output.size());
