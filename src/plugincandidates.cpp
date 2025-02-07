@@ -142,7 +142,7 @@ PluginCandidates::scan(string tag,
         }
     }
 
-    int toTest = remaining.size();
+    auto toTest = remaining.size();
     int runlimit = 20;
     int runcount = 0;
     
